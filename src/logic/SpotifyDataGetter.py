@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 class SpotifyDataGetter:
     def __init__(self):
-        load_dotenv()
+        load_dotenv('../../.env')
         self.client_id = os.getenv('SPOTIFY_CLIENT_ID')
         self.client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
         self.client_credentials_manager = SpotifyClientCredentials(client_id=self.client_id, client_secret=self.client_secret)
@@ -84,9 +84,9 @@ class SpotifyDataGetter:
 # Exemple d'utilisation
 spotify = SpotifyDataGetter()
 
-track_name = "Parachute"
-artist_name = "Wasted Penguinz, Jay Reeve"
-track_data = spotify.get_track_data(track_name, artist_name)
+# track_name = "Parachute"
+# artist_name = "Wasted Penguinz, Jay Reeve"
+# track_data = spotify.get_track_data(track_name, artist_name)
 
-print(track_data)
+# print(track_data)
 ###################################################################################################

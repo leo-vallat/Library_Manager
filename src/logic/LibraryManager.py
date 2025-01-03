@@ -1,6 +1,7 @@
 from ScriptingBridge import SBApplication
 from TrackRenamer import TrackRenamer
 from SpotifyDataGetter import SpotifyDataGetter
+from dotenv import load_dotenv
 import os
 import subprocess
 import time
@@ -10,12 +11,13 @@ import regex as re
 class LibraryManager(): 
     def __init__(self):
         """
-        Constructeur du manager de bibliothèques
+        Constructeur du manager de bibliothèque
         """
+        load_dotenv('../../.env')
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
-        #self.library_path = '/Volumes/Andúril/Musique/iTunes/Bibliothèque iTunes/Music Library.musiclibrary'  # Chemin vers la bibliothèque
-        self.library_path = '/Users/leopold/Library/Mobile Documents/com~apple~CloudDocs/Projets/Python/Musique/LibraryManager/TestLibrary/Music Library.musiclibrary'  # Chemin vers la bibliothèque
-        self.downloaded_music_path = '/Users/leopold/Library/Mobile Documents/com~apple~CloudDocs/Musique/Transfert Musique'  # Chemin vers le dossier de téléchargement
+        self.library_path = os.getenv('LIBRARY_PATH')  # Chemin vers la bibliothèque
+        self.test_library_path = os.getenv('TEST_LIBRARY_PATH')  # Chemin vers la bibliothèque
+        self.downloaded_music_path = os.getenv('DOWNLOADED_MUSIC_FOLDER_PATH')  # Chemin vers le dossier de téléchargement
         self.added_db = {}
 
 
