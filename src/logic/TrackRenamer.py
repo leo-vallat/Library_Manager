@@ -15,8 +15,9 @@ class TrackRenamer():
         self.loudness = None
         self.speechiness = None
         self.IDs = None
+        self.artwork_path = None
 
-    def set_values(self, iTunes_ID, title, artist, album, release_year, bpm, key, energy, happiness, danceability, loudness, speechiness,IDs):
+    def set_values(self, iTunes_ID, title, artist, album, release_year, bpm, key, energy, happiness, danceability, loudness, speechiness,IDs, artwork_path):
         '''
         Modifie les valeurs des attributs avec les valeurs passées en paramètres
         '''
@@ -33,9 +34,11 @@ class TrackRenamer():
         self.loudness = loudness
         self.speechiness = speechiness
         self.IDs = IDs
+        self.artwork_path = artwork_path
 
 
     def rename_track(self):
+
         # Commande AppleScript
         command = [
         'osascript', 
@@ -88,7 +91,13 @@ class TrackRenamer():
         if self.IDs:
             command.append('-e')
             command.append(f'set comment of theTrack to "{self.IDs}"')
-            
+        
+        if self.artwork_path:
+            command.append('-e')
+            command.append(f'set artworkData to read (POSIX file "{self.artwork_path}") as JPEG picture')
+            command.append('-e')
+            command.append('set data of artwork 1 of theTrack to artworkData')
+
         command.append('-e')
         command.append('end tell')
 

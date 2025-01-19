@@ -18,39 +18,55 @@ class SpotifyDataGetter:
         # Rechercher le morceau par titre et artiste
         result = self.spotify.search(q=f'track:{track_name.strip()} artist:{artist_name.strip()}', type='track', limit=1)
         
-        print(result['tracks']['items'][0]['id'])
-        print('\n')
+        #print(result)
+        # print('\n')
 
         if result['tracks']['items']:
             track_id = result['tracks']['items'][0]['id']
+            artwork_url = result['tracks']['items'][0]['album']['images'][0]['url']
+            #print(artwork_url)
+            #############################################################
+            # OBSOLÈTE car spotify a révoquer l'accès au endpoint
+            # track_features = self.spotify.audio_features([track_id])[0]
             
-            # Obtenir les "audio features" du morceau
-            track_features = self.spotify.audio_features([track_id])[0]
+            # # Récupérer le BPM, l'énergie et la clé du morceau
+            # bpm = track_features['tempo']
+            # energy = track_features['energy']
+            # key = track_features['key']
+            # mode = track_features['mode']
+            # happiness = track_features['valence']
+            # danceability = track_features['danceability']
+            # loudness = track_features['loudness']
+            # speechiness = track_features['speechiness']
+            # spotify_id = track_features['id']
             
-            # Récupérer le BPM, l'énergie et la clé du morceau
-            bpm = track_features['tempo']
-            energy = track_features['energy']
-            key = track_features['key']
-            mode = track_features['mode']
-            happiness = track_features['valence']
-            danceability = track_features['danceability']
-            loudness = track_features['loudness']
-            speechiness = track_features['speechiness']
-            spotify_id = track_features['id']
+            # # Conversion de la clé Spotify en clé Camelot
+            # camelot_key = self.get_camelot_key(key, mode)
             
-            # Conversion de la clé Spotify en clé Camelot
-            camelot_key = self.get_camelot_key(key, mode)
-            
+            # return {
+            #     'BPM': round(bpm),
+            #     'key': camelot_key,
+            #     'energy': self.discretize_value(energy),
+            #     'happiness': round(happiness*100),
+            #     'danceability': round(danceability*100),
+            #     'loudness': str(round(loudness)) +' dB',
+            #     'speechiness':str(round(speechiness*100)),
+            #     'spotify_id': str(spotify_id)
+            # }
+            #############################################################
+
             return {
-                'BPM': round(bpm),
-                'key': camelot_key,
-                'energy': self.discretize_value(energy),
-                'happiness': round(happiness*100),
-                'danceability': round(danceability*100),
-                'loudness': str(round(loudness)) +' dB',
-                'speechiness':str(round(speechiness*100)),
-                'spotify_id': str(spotify_id)
+            'BPM': None,
+            'key': None,
+            'energy': None,
+            'happiness': None,
+            'danceability': None,
+            'loudness': None,
+            'speechiness': None,
+            'spotify_id': track_id,
+            'artwork_url': artwork_url
             }
+
         else:
             return print("Morceau non trouvé.")
 
@@ -82,7 +98,7 @@ class SpotifyDataGetter:
 
 ###################################################################################################
 # Exemple d'utilisation
-spotify = SpotifyDataGetter()
+# spotify = SpotifyDataGetter()
 
 # track_name = "Parachute"
 # artist_name = "Wasted Penguinz, Jay Reeve"

@@ -3,9 +3,11 @@ from TrackRenamer import TrackRenamer
 from SpotifyDataGetter import SpotifyDataGetter
 from dotenv import load_dotenv
 import os
+import regex as re
+import requests
 import subprocess
 import time
-import regex as re
+
 
 
 class LibraryManager(): 
@@ -40,7 +42,10 @@ class LibraryManager():
         '''
         return len(self.music_app.tracks())
 
-
+    def remove_artwork(self, artwork_path):
+        '''
+        Supprime le fichier passé en paramètre artwork_url
+        '''
 
     def add_musics(self):
         '''
@@ -50,7 +55,7 @@ class LibraryManager():
         for filename in os.listdir(self.downloaded_music_path):
             if filename.endswith(('.mp3', '.wav', '.aac', '.flac')):
                 music_path = os.path.join(self.downloaded_music_path, filename)
-                                
+
                 subprocess.run(['open', '-a', 'Music', music_path])  # Ajout de la track à la bibliothèque
 
                 time.sleep(1)  # Attente que la track soit ajoutée à la bibliothèque
@@ -74,15 +79,16 @@ class LibraryManager():
                 track_parts.append(track_data['loudness'])
                 track_parts.append(track_data['speechiness'])
                 track_parts.append(track_data['spotify_id'])
+                track_parts.append(track_data['artwork_url'])
 
-                track_parts[1], track_parts[2], track_parts[3] = self.clean_track(track_parts[1], track_parts[2], track_parts[3])  # Nettoyage des différentes parties
+                track_parts[1], track_parts[2], track_parts[3], track_parts[12] = self.clean_track(track_parts[1], track_parts[2], track_parts[3], track_parts[12])  # Nettoyage des différentes parties
                 self.added_db[iTunes_track_ID] = track_parts  # Ajout de l'ID et des informations de la track au dictionnaire
 
                 print(f"Track : {track_parts[1]} - {track_parts[2]} ajoutée")
 
     
 
-    def clean_track(self, title, artist, album):
+    def clean_track(self, title, artist, album, artwork_url):
         '''
         Nettoie le titre, l'artiste et l'album
 
@@ -143,7 +149,40 @@ class LibraryManager():
         if album.lower() == title.lower():
             album = ''
 
-        return title, artist, album
+
+        ###########
+        # Artwork #
+        ###########
+        artwork_path = f'../../ressources/artwork/{title}-{artist}.jpg'
+        
+        # Téléchargement et enregistrement de l'artwork
+        response = requests.get(artwork_url)
+
+        if response.status_code == 200:  # Check if the request was successful
+            with open(artwork_path, "wb") as file:
+                file.write(response.content)
+            print(f"Image successfully downloaded and saved as {artwork_url}")
+        else:
+            print(f"Failed to download image. Status code: {response.status_code}")
+
+        # Chemin absolu vers l'artwork mis en forme pour AppleScript
+        absolute_artwork_path = os.path.abspath(artwork_path)
+
+        return title, artist, album, absolute_artwork_path
+
+
+
+    def del_artwork(self, iTunes_track_ID):
+        '''
+        Supprime l'artwork
+        '''
+        artwork_path = self.added_db[iTunes_track_ID][12]
+        
+        if os.path.exists(artwork_path):
+            os.remove(artwork_path)
+            print(f"Fichier '{artwork_path}' supprimé avec succès.")
+        else:
+            print(f"Le fichier '{artwork_path}' n'existe pas.")
 
 
 
@@ -166,7 +205,12 @@ class LibraryManager():
             loudness = self.added_db[iTunes_track_ID][9]  # Niveau Sonore
             speechiness = self.added_db[iTunes_track_ID][10]  # A quel point il y a des paroles dans la musique
             IDs = str(iTunes_track_ID) + ' ⎪ ' + self.added_db[iTunes_track_ID][11]  # ID iTunes & Spotify
-
-
-            renamer.set_values(iTunes_track_ID, title, artist, album, release_year, bpm, key, energy, happiness, danceability, loudness, speechiness, IDs)  # Fixe les valeurs des attributs du TrackRenamer
+            artwork_path = self.added_db[iTunes_track_ID][12]  # Artwork Path
+            
+            renamer.set_values(iTunes_track_ID, title, artist, album, release_year, bpm, key, energy, happiness, danceability, loudness, speechiness, IDs, artwork_path)  # Fixe les valeurs des attributs du TrackRenamer
             renamer.rename_track()  # Renommage de la track
+
+            self.del_artwork(iTunes_track_ID)# Suppression de l'artwork 
+
+
+            

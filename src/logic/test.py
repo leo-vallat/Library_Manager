@@ -1,43 +1,38 @@
-import time
-from playwright.sync_api import sync_playwright
+from mutagen.id3 import ID3, APIC, error
+from mutagen.wave import WAVE
 
-def bypass_cloudflare():
-    start_time = time.time()
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)  # Set headless=True for no GUI
-        context = browser.new_context()
-        page = context.new_page()
+def add_artwork_to_wav(wav_file, image_file):
+    try:
+        # Load the WAV file with ID3 tagging support
+        audio = WAVE(wav_file)
 
-        # Navigate to the target website
-        page.goto("https://tunebat.com/Info/How-Deep-Is-Your-Love-Calvin-Harris-Disciples/22mek4IiqubGD9ctzxc69s", timeout=60000)
+        # If the file doesn't already have ID3 tags, add them
+        if audio.tags is None:
+            audio.add_tags()
 
-        #time.sleep(10)
+        # Add the image as album art
+        with open(image_file, 'rb') as img:
+            audio.tags.add(
+                APIC(
+                    encoding=3,         # 3 is for UTF-8
+                    mime='image/jpeg',  # MIME type for jpg images
+                    type=3,             # 3 is for album art
+                    desc='Cover',
+                    data=img.read()     # Image data
+                )
+            )
+
+        # Save the changes
+        audio.save()
+        print(f"Artwork added successfully to {wav_file}!")
+    except error as e:
+        print(f"Error: {e}")
         
-        try:
-            # Wait for the "Continuer sans accepter" button and click it
-            button_selector = "button:has-text('Continuer sans accepter')"
-            page.wait_for_selector(button_selector, timeout=10000)
-            page.click(button_selector)
-            print("Cookie popup handled: 'Continuer sans accepter' clicked.")
-        except Exception as e:
-            print("Error handling cookie popup:", e)
-
-        
-        # Wait for the Cloudflare challenge to complete
-        page.wait_for_selector("body", timeout=10000)  # Adjust selector as needed
-
-        first_line_elements = page.locator('.yIPfN')
-        first_line_values = first_line_elements.all_inner_texts()
+# Example usage
+wav_path = "/Users/leopold/Library/Mobile Documents/com~apple~CloudDocs/Musique/Transfert Musique/2024 % Run Away (Shutdown Festival 2024 Anthem) % Vertile % Run Away (Shutdown Festival 2024 Anthem).wav"
+image_path = "/Users/leopold/Library/Mobile Documents/com~apple~CloudDocs/Projets/Python/Musique/LibraryManager/ressources/artwork/Run Away (Shutdown Festival 2024 Anthem)-Vertile.jpeg"
 
 
-        second_line_elements = page.locator('.ant-progress-text')
-        second_line_values = second_line_elements.all_inner_texts()
 
+add_artwork_to_wav(wav_path, image_path)
 
-        print(first_line_values, '\n')
-        print(second_line_values, '\n')
-        # Close the browser
-        #browser.close()
-
-        print(f'{time.time() - start_time:.2f}')
-bypass_cloudflare()
