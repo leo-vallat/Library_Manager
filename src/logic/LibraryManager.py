@@ -11,7 +11,7 @@ import time
 
 
 
-class LibraryManager(): 
+class LibraryManager():
     def __init__(self):
         """
         Constructeur du manager de bibliothèque
@@ -19,10 +19,27 @@ class LibraryManager():
         load_dotenv('.env')
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
         self.downloaded_music_path = os.getenv('DOWNLOADED_MUSIC_FOLDER_PATH')  # Chemin vers le dossier de téléchargement
+        self.batch_id = None
         self.added_db = {}
         
         self.logger = get_logger(self.__class__.__name__)
         self.logger.info('LibraryManager initialized')
+
+
+
+    def get_batch_id(self):
+        ''' Read batch_id.txt, update the value and save it '''
+        batch_id_path = 'ressources/batch_id.txt'
+
+        with open(batch_id_path, "r") as f:
+            batch_id = int(f.read().strip())
+        
+        batch_id += 1
+
+        with open(batch_id_path, "w") as f:
+            f.write(str(batch_id))
+
+        return batch_id
 
 
 
@@ -44,7 +61,7 @@ class LibraryManager():
         Déplace les musiques du dossier de téléchargement vers le dossier d'ajout à Musique. 
         '''
         spotify = SpotifyDataGetter()
-        
+        self.batch_id = self.get_batch_id()
         for filename in os.listdir(self.downloaded_music_path):
             if filename.endswith(('.mp3', '.wav',  '.aiff', '.m4a')):
                 music_path = os.path.join(self.downloaded_music_path, filename)
@@ -196,7 +213,7 @@ class LibraryManager():
             title = track_data['title']  # Titre
             artist = track_data['artist']  # Artiste
             album = track_data['album']  # Album
-            IDs = str(iTunes_track_ID) + ' ⎪ ' + track_data['spotify_id']  # ID iTunes & Spotify
+            IDs = str(iTunes_track_ID) + ' | ' + track_data['spotify_id'] + ' | ' + str(self.batch_id)  # ID iTunes & Spotify
             artwork_path = track_data['artwork_path']  # Artwork Path
             
             renamer.set_values(iTunes_track_ID, title, artist, album, release_year, IDs, artwork_path)  # Fixe les valeurs des attributs du TrackRenamer
