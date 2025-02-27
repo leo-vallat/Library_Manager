@@ -1,3 +1,4 @@
+from src.config.logger_config import get_logger
 import subprocess
 
 class TrackRenamer():
@@ -9,6 +10,9 @@ class TrackRenamer():
         self.release_year = None
         self.IDs = None
         self.artwork_path = None
+        
+        self.logger = get_logger(self.__class__.__name__)
+        self.logger.info('Track Renamer initialized')
 
 
 
@@ -55,10 +59,7 @@ class TrackRenamer():
 
         # Vérification des erreurs
         if result.returncode != 0:
-            print(f"\nErreur lors de l'exécution d'AppleScript : {result.stderr}")
-            print(self.title)
-            print(self.iTunes_ID)
-            print('---------------------------------------------------------\n')
+            self.logger.critical(f"Error while running Applescript on the track {self.title} - {self.artist} : {result.stderr}")
         else:
-            print(f"Track : {self.title} renommée avec succès.")
+            self.logger.info(f"Track : {self.title} - {self.artist} renamed")
 

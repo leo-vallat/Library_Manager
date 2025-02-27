@@ -3,3 +3,6 @@ __pycache__
 .env
 test
 .cache
+
+logs/*
+!logs/.gitkeep

@@ -1,3 +1,4 @@
+from src.config.logger_config import get_logger
 from ScriptingBridge import SBApplication
 from src.logic.TrackRenamer import TrackRenamer
 from src.logic.SpotifyDataGetter import SpotifyDataGetter
@@ -19,6 +20,9 @@ class LibraryManager():
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
         self.downloaded_music_path = os.getenv('DOWNLOADED_MUSIC_FOLDER_PATH')  # Chemin vers le dossier de téléchargement
         self.added_db = {}
+        
+        self.logger = get_logger(self.__class__.__name__)
+        self.logger.info('LibraryManager initialized')
 
 
 
@@ -40,6 +44,7 @@ class LibraryManager():
         Déplace les musiques du dossier de téléchargement vers le dossier d'ajout à Musique. 
         '''
         spotify = SpotifyDataGetter()
+        
         for filename in os.listdir(self.downloaded_music_path):
             if filename.endswith(('.mp3', '.wav',  '.aiff', '.m4a')):
                 music_path = os.path.join(self.downloaded_music_path, filename)
@@ -78,7 +83,7 @@ class LibraryManager():
 
                 self.added_db[iTunes_track_ID] = track_data  # Ajout de l'ID et des informations de la track au dictionnaire
 
-                print(f"Track : {track_data['title']} - {track_data['artist']} ajoutée \n")
+                self.logger.info(f"Track : {track_data['title']} - {track_data['artist']} added")
             
 
 
@@ -156,9 +161,8 @@ class LibraryManager():
         if response.status_code == 200:  # Check if the request was successful
             with open(artwork_path, "wb") as file:
                 file.write(response.content)
-            print(f"Image successfully downloaded and saved as {artwork_url}")
         else:
-            print(f"Failed to download image. Status code: {response.status_code}")
+            self.logger.error(f"Failed to download image. Status code: {response.status_code}")
 
         return artwork_path     
 
@@ -174,13 +178,8 @@ class LibraryManager():
         '''
         Supprime l'artwork
         '''
-        artwork_path = self.added_db[iTunes_track_ID]['artwork_path']
-        
-        if artwork_path:
-            os.remove(artwork_path)
-            print(f"Fichier '{artwork_path}' supprimé avec succès.")
-        else:
-            print(f"Pas d'artwork a supprimer pour cette track")
+        if self.added_db[iTunes_track_ID]['artwork_path']:
+            os.remove(self.added_db[iTunes_track_ID]['artwork_path'])
 
 
 
@@ -200,12 +199,6 @@ class LibraryManager():
             IDs = str(iTunes_track_ID) + ' ⎪ ' + track_data['spotify_id']  # ID iTunes & Spotify
             artwork_path = track_data['artwork_path']  # Artwork Path
             
-            if title == 'Liminal':
-                print(f'artist : {artist}')
-                print(f'album : {album}')
-                print(f'IDs : {IDs}')
-                print(f'Artwork path : {artwork_path}')
-
             renamer.set_values(iTunes_track_ID, title, artist, album, release_year, IDs, artwork_path)  # Fixe les valeurs des attributs du TrackRenamer
             renamer.rename_track()  # Renommage de la track
 

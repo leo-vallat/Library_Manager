@@ -1,7 +1,8 @@
-import os
-import spotipy
+from src.config.logger_config import get_logger
 from spotipy.oauth2 import SpotifyClientCredentials
 from dotenv import load_dotenv
+import os
+import spotipy
 
 
 class SpotifyDataGetter:
@@ -11,7 +12,9 @@ class SpotifyDataGetter:
         self.client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
         self.client_credentials_manager = SpotifyClientCredentials(client_id=self.client_id, client_secret=self.client_secret)
         self.spotify = spotipy.Spotify(client_credentials_manager=self.client_credentials_manager)
-
+        
+        self.logger = get_logger(self.__class__.__name__)
+        self.logger.info('SpotifyDataGetter initialized')
 
 
     def get_track_data(self, track_name, artist_name):
@@ -28,7 +31,7 @@ class SpotifyDataGetter:
             }
 
         else:
-            return print("Morceau non trouvé.")
+            return self.logger.error("Track data not found")
 
 
 ###################################################################################################
