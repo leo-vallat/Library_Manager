@@ -59,7 +59,7 @@ class TrackRenamer():
 
         # Vérification des erreurs
         if result.returncode != 0:
-            self.logger.critical(f"Error while running Applescript on the track {self.title} - {self.artist} : {result.stderr}")
+            self.logger.error(f"Error while running Applescript on the track {self.title} - {self.artist} : {result.stderr}")
         else:
             self.logger.info(f"Track : {self.title} - {self.artist} renamed")
 
