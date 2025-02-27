@@ -1,6 +1,6 @@
 from ScriptingBridge import SBApplication
-from TrackRenamer import TrackRenamer
-from SpotifyDataGetter import SpotifyDataGetter
+from src.logic.TrackRenamer import TrackRenamer
+from src.logic.SpotifyDataGetter import SpotifyDataGetter
 from dotenv import load_dotenv
 import os
 import regex as re
@@ -15,12 +15,13 @@ class LibraryManager():
         """
         Constructeur du manager de bibliothèque
         """
-        load_dotenv('../../.env')
+        load_dotenv('.env')
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
         self.library_path = os.getenv('LIBRARY_PATH')  # Chemin vers la bibliothèque
         self.test_library_path = os.getenv('TEST_LIBRARY_PATH')  # Chemin vers la bibliothèque
         self.downloaded_music_path = os.getenv('DOWNLOADED_MUSIC_FOLDER_PATH')  # Chemin vers le dossier de téléchargement
         self.added_db = {}
+
 
 
     def get_last_added_track(self):
@@ -36,24 +37,15 @@ class LibraryManager():
 
         return track
 
-    def get_track_count(self):
-        '''
-        Retourne le nombre de track de la bibliothèque
-        '''
-        return len(self.music_app.tracks())
 
-    def remove_artwork(self, artwork_path):
-        '''
-        Supprime le fichier passé en paramètre artwork_url
-        '''
 
-    def add_musics(self):
+    def add_tracks(self):
         '''
         Déplace les musiques du dossier de téléchargement vers le dossier d'ajout à Musique. 
         '''
         spotify = SpotifyDataGetter()
         for filename in os.listdir(self.downloaded_music_path):
-            if filename.endswith(('.mp3', '.wav', '.aac', '.flac')):
+            if filename.endswith(('.mp3', '.wav', '.m4a', '.aiff')):
                 music_path = os.path.join(self.downloaded_music_path, filename)
 
                 subprocess.run(['open', '-a', 'Music', music_path])  # Ajout de la track à la bibliothèque
@@ -69,26 +61,41 @@ class LibraryManager():
                 while len(track_parts) < 4 :
                     track_parts.append('')
                 
-                #  Ajout des valeurs bpm, clé et énergie à la liste 
-                track_data = spotify.get_track_data(track_parts[1], track_parts[2])
-                track_parts.append(track_data['BPM'])
-                track_parts.append(track_data['key'])
-                track_parts.append(track_data['energy'])
-                track_parts.append(track_data['happiness'])
-                track_parts.append(track_data['danceability'])
-                track_parts.append(track_data['loudness'])
-                track_parts.append(track_data['speechiness'])
-                track_parts.append(track_data['spotify_id'])
-                track_parts.append(track_data['artwork_url'])
+                track_data = {'release_year' : track_parts[0], 'title' : track_parts[1], 'artist' : track_parts[2], 'album' : track_parts[3]}
 
-                track_parts[1], track_parts[2], track_parts[3], track_parts[12] = self.clean_track(track_parts[1], track_parts[2], track_parts[3], track_parts[12])  # Nettoyage des différentes parties
-                self.added_db[iTunes_track_ID] = track_parts  # Ajout de l'ID et des informations de la track au dictionnaire
+                #  Ajout de l'id spotify et de l'url de l'artwork 
+                track_data.update(spotify.get_track_data(track_parts[1], track_parts[2]))
 
-                print(f"Track : {track_parts[1]} - {track_parts[2]} ajoutée")
+                # Nettoyage des track_datas
+                track_data['title'], track_data['artist'], track_data['album'] = self.clean_track_elements(track_data['title'], track_data['artist'], track_data['album'])
+                
+                # Téléchargement de l'artwork
+                track_data['artwork_path'] = os.path.abspath(self.create_artwork(track_data['title'], track_data['artist'], track_data['artwork_url']))
+                del track_data['artwork_url']
 
-    
+                self.added_db[iTunes_track_ID] = track_data  # Ajout de l'ID et des informations de la track au dictionnaire
 
-    def clean_track(self, title, artist, album, artwork_url):
+                print(f"Track : {track_data['title']} - {track_data['artist']} ajoutée")
+            
+            elif filename.endswith('.alac'):
+                music_path = os.path.join(self.downloaded_music_path, filename)
+
+                subprocess.run(['open', '-a', 'Music', music_path])  # Ajout de la track à la bibliothèque
+
+                time.sleep(1)  # Attente que la track soit ajoutée à la bibliothèque
+
+                track = self.get_last_added_track()  # Récupération de la track ajoutée
+                iTunes_track_ID = track.persistentID()  # ID attribuée à la track dans Musique
+
+                track_name = filename[:-4].split('%')[1]
+                artist_name = filename[:-4].split('%')[2]
+
+                spotify_id = spotify.get_track_data(track_name, artist_name)['spotify_id']
+
+
+
+
+    def clean_track_elements(self, title, artist, album):
         '''
         Nettoie le titre, l'artiste et l'album
 
@@ -149,12 +156,14 @@ class LibraryManager():
         if album.lower() == title.lower():
             album = ''
 
+        return title, artist, album
 
-        ###########
-        # Artwork #
-        ###########
-        artwork_path = f'../../ressources/artwork/{title}-{artist}.jpg'
-        
+
+
+    def create_artwork(self, title, artist, artwork_url):
+        ''' Télécharge l'artwork '''
+        artwork_path = f'ressources/artwork/{title}-{artist}.jpg'
+
         # Téléchargement et enregistrement de l'artwork
         response = requests.get(artwork_url)
 
@@ -165,18 +174,21 @@ class LibraryManager():
         else:
             print(f"Failed to download image. Status code: {response.status_code}")
 
-        # Chemin absolu vers l'artwork mis en forme pour AppleScript
-        absolute_artwork_path = os.path.abspath(artwork_path)
-
-        return title, artist, album, absolute_artwork_path
+        return artwork_path     
 
 
 
-    def del_artwork(self, iTunes_track_ID):
+    def get_abs_path(file_path):
+        ''' Rtourne le chemin absolu du fichier '''
+        os.path.abspath(file_path)
+
+
+
+    def remove_artwork(self, iTunes_track_ID):
         '''
         Supprime l'artwork
         '''
-        artwork_path = self.added_db[iTunes_track_ID][12]
+        artwork_path = self.added_db[iTunes_track_ID]['artwork_path']
         
         if os.path.exists(artwork_path):
             os.remove(artwork_path)
@@ -186,31 +198,25 @@ class LibraryManager():
 
 
 
-    def rename_musics(self): 
+    def rename_tracks(self): 
         '''
         Itère sur les éléments du dictionnaire et renomme les photos
         '''
         renamer = TrackRenamer()
 
         for iTunes_track_ID in self.added_db:  # Itération sur les éléments du dictionnaire
-            release_year = self.added_db[iTunes_track_ID][0]  # Année de sortie
-            title = self.added_db[iTunes_track_ID][1]  # Titre
-            artist = self.added_db[iTunes_track_ID][2]  # Artiste
-            album = self.added_db[iTunes_track_ID][3]  # Album
-            bpm = self.added_db[iTunes_track_ID][4]  # BPM
-            key = self.added_db[iTunes_track_ID][5]  # Clé 
-            energy = self.added_db[iTunes_track_ID][6]  # Énergie
-            happiness = self.added_db[iTunes_track_ID][7]  # Positivité
-            danceability = self.added_db[iTunes_track_ID][8]  # Dansabilité
-            loudness = self.added_db[iTunes_track_ID][9]  # Niveau Sonore
-            speechiness = self.added_db[iTunes_track_ID][10]  # A quel point il y a des paroles dans la musique
-            IDs = str(iTunes_track_ID) + ' ⎪ ' + self.added_db[iTunes_track_ID][11]  # ID iTunes & Spotify
-            artwork_path = self.added_db[iTunes_track_ID][12]  # Artwork Path
+            track_data = self.added_db[iTunes_track_ID]
+
+            release_year = track_data['release_year']  # Année de sortie
+            title = track_data['title']  # Titre
+            artist = track_data['artist']  # Artiste
+            album = track_data['album']  # Album
+            IDs = str(iTunes_track_ID) + ' ⎪ ' + track_data['spotify_id']  # ID iTunes & Spotify
+            artwork_path = track_data['artwork_path']  # Artwork Path
             
-            renamer.set_values(iTunes_track_ID, title, artist, album, release_year, bpm, key, energy, happiness, danceability, loudness, speechiness, IDs, artwork_path)  # Fixe les valeurs des attributs du TrackRenamer
+            renamer.set_values(iTunes_track_ID, title, artist, album, release_year, IDs, artwork_path)  # Fixe les valeurs des attributs du TrackRenamer
             renamer.rename_track()  # Renommage de la track
 
-            self.del_artwork(iTunes_track_ID)# Suppression de l'artwork 
+            self.remove_artwork(iTunes_track_ID)# Suppression de l'artwork 
 
 
-            

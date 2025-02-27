@@ -7,17 +7,12 @@ class TrackRenamer():
         self.artist = None
         self.album = None
         self.release_year = None
-        self.bpm = None
-        self.key = None
-        self.energy = None
-        self.happiness = None
-        self.danceability = None
-        self.loudness = None
-        self.speechiness = None
         self.IDs = None
         self.artwork_path = None
 
-    def set_values(self, iTunes_ID, title, artist, album, release_year, bpm, key, energy, happiness, danceability, loudness, speechiness,IDs, artwork_path):
+
+
+    def set_values(self, iTunes_ID, title, artist, album, release_year, IDs, artwork_path):
         '''
         Modifie les valeurs des attributs avec les valeurs passées en paramètres
         '''
@@ -26,13 +21,6 @@ class TrackRenamer():
         self.artist = artist
         self.album = album
         self.release_year = release_year
-        self.bpm = bpm
-        self.key = key
-        self.energy = energy
-        self.happiness = happiness
-        self.danceability = danceability
-        self.loudness = loudness
-        self.speechiness = speechiness
         self.IDs = IDs
         self.artwork_path = artwork_path
 
@@ -57,37 +45,6 @@ class TrackRenamer():
             command.append('-e')
             command.append(f'set year of theTrack to {self.release_year}')
         
-        if self.bpm:
-            self.bpm = int(self.bpm)
-            command.append('-e')
-            command.append(f'set bpm of theTrack to {self.bpm}')
-
-        if self.key:
-            command.append('-e')
-            command.append(f'set grouping of theTrack to "{self.key}"')
-
-        if self.energy:
-            command.append('-e')
-            command.append(f'set rating of theTrack to {self.energy}')
-
-        if self.happiness:
-            self.happiness = int(self.happiness)
-            command.append('-e')
-            command.append(f'set track number of theTrack to {self.happiness}')
-
-        if self.danceability:
-            self.danceability = int(self.danceability)
-            command.append('-e')
-            command.append(f'set disc number of theTrack to {self.danceability}')
-
-        if self.loudness:
-            command.append('-e')
-            command.append(f'set category of theTrack to "{self.loudness}"')
-
-        if self.speechiness:
-            command.append('-e')
-            command.append(f'set description of theTrack to "{self.speechiness}"')
-
         if self.IDs:
             command.append('-e')
             command.append(f'set comment of theTrack to "{self.IDs}"')
