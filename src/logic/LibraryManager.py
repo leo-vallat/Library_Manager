@@ -17,8 +17,6 @@ class LibraryManager():
         """
         load_dotenv('.env')
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
-        self.library_path = os.getenv('LIBRARY_PATH')  # Chemin vers la bibliothèque
-        self.test_library_path = os.getenv('TEST_LIBRARY_PATH')  # Chemin vers la bibliothèque
         self.downloaded_music_path = os.getenv('DOWNLOADED_MUSIC_FOLDER_PATH')  # Chemin vers le dossier de téléchargement
         self.added_db = {}
 
