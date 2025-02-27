@@ -32,9 +32,7 @@ class LibraryManager():
             - track : La dernière musique ajoutée
         '''
         tracks = self.music_app.tracks()
-
         track = sorted(tracks, key=lambda track: track.dateAdded(), reverse=True)[0]
-
         return track
 
 
@@ -45,7 +43,7 @@ class LibraryManager():
         '''
         spotify = SpotifyDataGetter()
         for filename in os.listdir(self.downloaded_music_path):
-            if filename.endswith(('.mp3', '.wav', '.m4a', '.aiff')):
+            if filename.endswith(('.mp3', '.wav',  '.aiff', '.m4a')):
                 music_path = os.path.join(self.downloaded_music_path, filename)
 
                 subprocess.run(['open', '-a', 'Music', music_path])  # Ajout de la track à la bibliothèque
@@ -55,7 +53,10 @@ class LibraryManager():
                 track = self.get_last_added_track()  # Récupération de la track ajoutée
                 iTunes_track_ID = track.persistentID()  # ID attribuée à la track dans Musique
 
-                track_parts = filename[:-4].split('%')  # Séparation du nom de la track
+                if filename.endswith('.aiff'):
+                    track_parts = filename[:-5].split('%')  # Séparation du nom de la track
+                else:
+                    track_parts = filename[:-4].split('%')  # Séparation du nom de la track
 
                 #  Vérification qu'il y ait bien 4 parties différentes (sinon la partie est créée et vaut '')
                 while len(track_parts) < 4 :
@@ -69,30 +70,18 @@ class LibraryManager():
                 # Nettoyage des track_datas
                 track_data['title'], track_data['artist'], track_data['album'] = self.clean_track_elements(track_data['title'], track_data['artist'], track_data['album'])
                 
-                # Téléchargement de l'artwork
-                track_data['artwork_path'] = os.path.abspath(self.create_artwork(track_data['title'], track_data['artist'], track_data['artwork_url']))
+                # Artwork
+                if filename.endswith(('.aiff', '.m4a')):
+                    track_data['artwork_path'] = None
+                else:
+                    track_data['artwork_path'] = os.path.abspath(self.dl_artwork(track_data['title'], track_data['artist'], track_data['artwork_url']))
+                
                 del track_data['artwork_url']
 
                 self.added_db[iTunes_track_ID] = track_data  # Ajout de l'ID et des informations de la track au dictionnaire
 
-                print(f"Track : {track_data['title']} - {track_data['artist']} ajoutée")
+                print(f"Track : {track_data['title']} - {track_data['artist']} ajoutée \n")
             
-            elif filename.endswith('.alac'):
-                music_path = os.path.join(self.downloaded_music_path, filename)
-
-                subprocess.run(['open', '-a', 'Music', music_path])  # Ajout de la track à la bibliothèque
-
-                time.sleep(1)  # Attente que la track soit ajoutée à la bibliothèque
-
-                track = self.get_last_added_track()  # Récupération de la track ajoutée
-                iTunes_track_ID = track.persistentID()  # ID attribuée à la track dans Musique
-
-                track_name = filename[:-4].split('%')[1]
-                artist_name = filename[:-4].split('%')[2]
-
-                spotify_id = spotify.get_track_data(track_name, artist_name)['spotify_id']
-
-
 
 
     def clean_track_elements(self, title, artist, album):
@@ -125,8 +114,7 @@ class LibraryManager():
         ##########
         # Artist #
         ##########
-        artists_list = artist.split(',')  # Séparation des différents artistes
-        artists_list = [artist.strip() for artist in artists_list]  # Suppression des espaces inutiles
+        artists_list = [artist.strip() for artist in artist.split(',')]
         
         # Suppression de l'artiste de feat s'il existe
         if feat_artist != '':
@@ -140,7 +128,7 @@ class LibraryManager():
                 if artist in remix_artist:
                     artists_list.remove(artist)
 
-        artist = ' x '.join(artists_list)  # Reconstruction de la chaine de caractère artist
+        artist = ' x '.join(artists_list)  # Reconstruction de la chaine de caractère 'artist'
         
         # Ajoute l'artiste en feat s'il existe
         if feat_artist != '':
@@ -160,7 +148,7 @@ class LibraryManager():
 
 
 
-    def create_artwork(self, title, artist, artwork_url):
+    def dl_artwork(self, title, artist, artwork_url):
         ''' Télécharge l'artwork '''
         artwork_path = f'ressources/artwork/{title}-{artist}.jpg'
 
@@ -179,7 +167,7 @@ class LibraryManager():
 
 
     def get_abs_path(file_path):
-        ''' Rtourne le chemin absolu du fichier '''
+        ''' Retourne le chemin absolu du fichier '''
         os.path.abspath(file_path)
 
 
@@ -190,11 +178,11 @@ class LibraryManager():
         '''
         artwork_path = self.added_db[iTunes_track_ID]['artwork_path']
         
-        if os.path.exists(artwork_path):
+        if artwork_path:
             os.remove(artwork_path)
             print(f"Fichier '{artwork_path}' supprimé avec succès.")
         else:
-            print(f"Le fichier '{artwork_path}' n'existe pas.")
+            print(f"Pas d'artwork a supprimer pour cette track")
 
 
 
@@ -214,6 +202,12 @@ class LibraryManager():
             IDs = str(iTunes_track_ID) + ' ⎪ ' + track_data['spotify_id']  # ID iTunes & Spotify
             artwork_path = track_data['artwork_path']  # Artwork Path
             
+            if title == 'Liminal':
+                print(f'artist : {artist}')
+                print(f'album : {album}')
+                print(f'IDs : {IDs}')
+                print(f'Artwork path : {artwork_path}')
+
             renamer.set_values(iTunes_track_ID, title, artist, album, release_year, IDs, artwork_path)  # Fixe les valeurs des attributs du TrackRenamer
             renamer.rename_track()  # Renommage de la track
 

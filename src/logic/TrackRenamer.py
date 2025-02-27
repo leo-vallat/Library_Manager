@@ -20,30 +20,22 @@ class TrackRenamer():
         self.title = title
         self.artist = artist
         self.album = album
-        self.release_year = release_year
+        self.release_year = int(release_year)
         self.IDs = IDs
         self.artwork_path = artwork_path
 
 
     def rename_track(self):
-
         # Commande AppleScript
         command = [
         'osascript', 
         '-e', 'tell application "Music"', 
         '-e', f'set theTrack to (first track whose persistent ID is "{self.iTunes_ID}")', 
         '-e', f'set name of theTrack to "{self.title}"',
-        '-e', f'set artist of theTrack to "{self.artist}"'
+        '-e', f'set artist of theTrack to "{self.artist}"',
+        '-e', f'set album of theTrack to "{self.album}"',
+        '-e', f'set year of theTrack to {self.release_year}'
         ]
-
-        if self.album:
-            command.append('-e')
-            command.append(f'set album of theTrack to "{self.album}"')
-        
-        if self.release_year:
-            self.release_year = int(self.release_year)
-            command.append('-e')
-            command.append(f'set year of theTrack to {self.release_year}')
         
         if self.IDs:
             command.append('-e')
