@@ -15,25 +15,9 @@ class PlaylistManager():
         self.name = name
         self.size = size
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")
-        self.playlist = self.initialize_playlist()
+        self.playlist = self.initialize_playlist(name)
 
-    def set_name(self, name):
-        ''' 
-        Setter self.name
-        '''
-        self.name = name
-
-    def set_size(self, size):
-        ''' Setter self.size '''
-        self.size = size
-
-    def set_playlist(self):
-        '''
-        Setter self.playlist
-        '''
-        self.playlist = self.initialize_playlist()
-
-    def initialize_playlist(self):
+    def initialize_playlist(self, name):
         '''
         Test l'existence de la playlist, si False la crée
         '''
@@ -101,6 +85,9 @@ class PlaylistManager():
         '''
         if set == 'Full':
             track_set = self.music_app.tracks()
+            for playlist in target_playlist_list:
+                print(playlist)
+                self.remove_all_tracks_from_playlist(playlist)
         elif set == 'NTO':
             track_set = self.get_last_added_track_list()
 
@@ -133,8 +120,6 @@ class PlaylistManager():
             self.set_playlist()  
             self.add_track(track)
 
-
-
     def get_last_added_track_list(self):
         ''' Return the list of the track added the last time '''
         last_added_track_list = []
@@ -148,27 +133,61 @@ class PlaylistManager():
         
         return last_added_track_list
 
+    def remove_all_tracks_from_playlist(self, playlist):
+        '''
+        Remove all the track from a specific playlist
 
-    # def remove_track_from_playlist(self, track, playlist):
-    #         """
-    #         Removes a track from a specific playlist.
+        Args:
+            playlist (str): the name of the playlist
+        '''
+        tracks = self.get_tracks_from_playlist(playlist)
+        self.set_name(playlist)
+        self.set_playlist()
+        for track in reversed(tracks):
+            self.remove_track(track)
 
-    #         Args:
-    #             - track: The track object to remove.
-    #             - playlist: The playlist object from which to remove the track.
-    #         """
-    #         try:
-    #             # Check if the track is in the playlist
-    #             if track in playlist.tracks():
-    #                 # Remove the track from the playlist
-    #                 track.delete()
-    #                 print(f"Track '{track.name()}' removed from playlist '{playlist.name()}'.")
-    #             else:
-    #                 print(f"Track '{track.name()}' is not in playlist '{playlist.name()}'.")
-    #         except Exception as e:
-    #             print(f"Error removing track '{track.name()}' from playlist '{playlist.name()}': {e}")
+    def get_tracks_from_playlist(self, playlist_name):
+        ''' 
+        Returns the list of the track instances in a playlist 
+        '''
+        try:
+            for playlist in self.music_app.userPlaylists():
+                if playlist.name() == playlist_name:
+                    return list(playlist.tracks())
+            print(f"Aucune playlist nommée '{playlist_name}' n'a été trouvée.")
+            return []
+        except Exception as e:
+            print(f"Erreur lors de la récupération des tracks de la playlist '{playlist_name}' : \n {e}")
+            return []
+    
+    def remove_track_from_playlist(self, track, playlist):
+            '''
+            Removes a specific track from a specific playlist.
 
-# if __name__ == "__main__":
-#     manager = PlaylistManager()
-#     #manager.populate_playlist()
-#     manager.update_genre_playlist("Full", ["Euphoric Hardstyle", "Hardstyle"])
+            Args:
+                - track: The track object to remove.
+                - playlist: The playlist object from which to remove the track.
+            '''
+            try:
+                # Check if the track is in the playlist
+                if track in playlist.tracks():
+                    self.remove_track(track)
+                else:
+                    print(f"Track '{track.name()}' is not in playlist '{playlist.name()}'.")
+            except Exception as e:
+                print(f"Error removing track '{track.name()}' from playlist '{playlist.name()}': {e}")
+
+    def remove_track(self, track):
+        ''' Remove the track from self.playlist '''
+        try:
+            track.delete()
+            print(f'{track.name()} removed')
+        except Exception as e:
+            print(f"Erreur lors de la suppression de la track {track} de la playlist {self.playlist} : \n {e}")
+
+if __name__ == "__main__":
+    manager = PlaylistManager('Euphoric Hardstyle')
+    print(manager.playlist)
+    # manager.populate_playlist()
+    # manager.update_genre_playlist("Full", ["Euphoric Hardstyle", "Hardstyle"])
+    # manager.remove_all_tracks_from_playlist('Test')
