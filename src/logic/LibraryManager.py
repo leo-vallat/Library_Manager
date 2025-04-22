@@ -1,10 +1,10 @@
-from src.config.logger_config import get_logger
 from ScriptingBridge import SBApplication
+from src.config.config import AppConfig
+from src.config.logger_config import get_logger, log_session_start
 from src.logic.TrackRenamer import TrackRenamer
 from src.logic.SpotifyDataGetter import SpotifyDataGetter
-from dotenv import load_dotenv
+from src.utils import library_manager_utils
 import os
-import regex as re
 import requests
 import subprocess
 import time
@@ -12,55 +12,30 @@ import time
 
 class LibraryManager():
     def __init__(self):
-        load_dotenv('.env')
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
-        self.downloaded_music_path = os.getenv('DOWNLOADED_MUSIC_FOLDER_PATH')  # Chemin vers le dossier de téléchargement
+        self.downloaded_music_path = AppConfig.DOWNLOADED_MUSIC_FOLDER_PATH  # Chemin vers le dossier de téléchargement
         self.batch_id = None
         self.added_db = {}
-        
         self.logger = get_logger(self.__class__.__name__)
+        log_session_start(self.logger)
+        AppConfig.validate()
         self.logger.info('LibraryManager initialized')
-
-    def get_batch_id(self):
-        ''' Read batch_id.txt, update the value and save it '''
-        batch_id_path = 'ressources/batch_id.txt'
-
-        with open(batch_id_path, "r") as f:
-            batch_id = int(f.read().strip())
-        
-        batch_id += 1
-
-        with open(batch_id_path, "w") as f:
-            f.write(str(batch_id))
-
-        return batch_id
-
-    def get_last_added_track(self):
-        '''
-        Retourne la dernière musique ajoutée à la bibliothèque
-
-        Return : 
-            - track : La dernière musique ajoutée
-        '''
-        tracks = self.music_app.tracks()
-        track = sorted(tracks, key=lambda track: track.dateAdded(), reverse=True)[0]
-        return track
 
     def add_tracks(self):
         '''
         Déplace les musiques du dossier de téléchargement vers le dossier d'ajout à Musique. 
         '''
         spotify = SpotifyDataGetter()
-        self.batch_id = self.get_batch_id()
+        self.batch_id = library_manager_utils.get_batch_id()
         for filename in os.listdir(self.downloaded_music_path):
-            if filename.endswith(('.mp3', '.wav',  '.aiff', '.m4a')):
+            if filename.endswith(AppConfig.AVAILABLE_FILE_EXTENSION):
                 music_path = os.path.join(self.downloaded_music_path, filename)
 
                 subprocess.run(['open', '-a', 'Music', music_path])  # Ajout de la track à la bibliothèque
 
                 time.sleep(1)  # Attente que la track soit ajoutée à la bibliothèque
 
-                track = self.get_last_added_track()  # Récupération de la track ajoutée
+                track = self._get_last_added_track()  # Récupération de la track ajoutée
                 iTunes_track_ID = track.persistentID()  # ID attribuée à la track dans Musique
 
                 if filename.endswith('.aiff'):
@@ -78,105 +53,18 @@ class LibraryManager():
                 track_data.update(spotify.get_track_data(track_parts[1], track_parts[2]))
 
                 # Nettoyage des track_datas
-                track_data['title'], track_data['artist'], track_data['album'] = self.clean_track_elements(track_data['title'], track_data['artist'], track_data['album'])
+                track_data['title'], track_data['artist'], track_data['album'] = library_manager_utils.clean_track_elements(track_data['title'], track_data['artist'], track_data['album'])
                 
                 # Artwork
                 if filename.endswith(('.aiff', '.m4a')):
                     track_data['artwork_path'] = None
                 else:
-                    track_data['artwork_path'] = os.path.abspath(self.dl_artwork(track_data['title'], track_data['artist'], track_data['artwork_url']))
-                
+                    track_data['artwork_path'] = os.path.abspath(self._dl_artwork(track_data['title'], track_data['artist'], track_data['artwork_url']))
                 del track_data['artwork_url']
 
                 self.added_db[iTunes_track_ID] = track_data  # Ajout de l'ID et des informations de la track au dictionnaire
 
                 self.logger.info(f"Track : {track_data['title']} - {track_data['artist']} added")
-            
-    def clean_track_elements(self, title, artist, album):
-        '''
-        Nettoie le titre, l'artiste et l'album
-
-        Args: 
-            - le titre
-            - l'artiste
-            - l'album
-
-        Return:
-            - le titre nettoyé
-            - l'artiste nettoyé
-            - l'album nettoyé
-        '''
-        #########
-        # Titre #
-        #########
-        title = re.sub(r'- ([\p{L}0-9\s\'&]+(?: Remix| Mix))', r'(\1)', title)  # Met en forme la partie Remix / Mix
-        title = re.sub(r'- (Extended Mix)', r'(\1)', title)  # Met en forme le Extended Mix
-        title = re.sub(r'- (Radio Edit)', r'(\1)', title)  # Met en forme le Extended Mix
-        title = re.sub(r'- (Official [^\)]+ Anthem)', r'(\1)', title)  # Met en forme le Official ... Anthem
-
-        clean_feat = lambda s: (re.search(r'\(feat\. ([^\)]+)\)', s).group(1) if re.search(r'\(feat\. ([^\)]+)\)', s) else '', re.sub(r' \(feat\. ([^\)]+)\)', '', s).strip())  # Récupère le nom de l'artiste en feat puis supprime la partie feat
-        feat_artist, title = clean_feat(title)
-        title = (lambda title: title if title.istitle() else title.title())(title)  # Vérifie que chaque mot possède une majuscule
-
-
-        ##########
-        # Artist #
-        ##########
-        artists_list = [artist.strip() for artist in artist.split(',')]
-        
-        # Suppression de l'artiste de feat s'il existe
-        if feat_artist != '':
-            for artist in artists_list:
-                if artist in feat_artist:
-                    artists_list.remove(artist)
-        # Suppresion du/des artiste(s) de remix
-        remix_artist = re.search(r'((?:\()[\p{L}0-9\s\'&]+(?: Remix))', title).group(1) if re.search(r'((?:\()[\p{L}0-9\s\'&]+(?: Remix))', title) else ''
-        if remix_artist != '':
-            for artist in artists_list:
-                if artist in remix_artist:
-                    artists_list.remove(artist)
-
-        artist = ', '.join(artists_list)  # Reconstruction de la chaine de caractère 'artist'
-        
-        # Ajoute l'artiste en feat s'il existe
-        if feat_artist != '':
-            artist += f' ft. {feat_artist}'
-
-
-        #########
-        # Album #
-        #########
-        album = album.strip()
-
-        # Supprime l'album si il est identique au titre
-        if album.lower() == title.lower():
-            album = ''
-
-        return title, artist, album
-
-    def dl_artwork(self, title, artist, artwork_url):
-        ''' Télécharge l'artwork '''
-        artwork_path = f'ressources/artwork/{title}-{artist}.jpg'
-
-        # Téléchargement et enregistrement de l'artwork
-        response = requests.get(artwork_url)
-
-        if response.status_code == 200:  # Check if the request was successful
-            with open(artwork_path, "wb") as file:
-                file.write(response.content)
-        else:
-            self.logger.error(f"Failed to download image. Status code: {response.status_code}")
-
-        return artwork_path     
-
-    def get_abs_path(file_path):
-        ''' Retourne le chemin absolu du fichier '''
-        os.path.abspath(file_path)
-
-    def remove_artwork(self, iTunes_track_ID):
-        ''' Supprime l'artwork '''
-        if self.added_db[iTunes_track_ID]['artwork_path']:
-            os.remove(self.added_db[iTunes_track_ID]['artwork_path'])
 
     def rename_tracks(self): 
         '''
@@ -197,4 +85,35 @@ class LibraryManager():
             renamer.set_values(iTunes_track_ID, title, artist, album, release_year, IDs, artwork_path)  # Fixe les valeurs des attributs du TrackRenamer
             renamer.rename_track()  # Renommage de la track
 
-            self.remove_artwork(iTunes_track_ID)# Suppression de l'artwork 
+            self._remove_artwork(iTunes_track_ID)# Suppression de l'artwork 
+
+    def _get_last_added_track(self):
+        '''
+        Retourne la dernière musique ajoutée à la bibliothèque
+
+        Return : 
+            - track : La dernière musique ajoutée
+        '''
+        tracks = self.music_app.tracks()
+        track = sorted(tracks, key=lambda track: track.dateAdded(), reverse=True)[0]
+        return track
+
+    def _dl_artwork(self, title, artist, artwork_url):
+        ''' Télécharge l'artwork '''
+        artwork_path = f'ressources/artwork/{title}-{artist}.jpg'
+        # Téléchargement et enregistrement de l'artwork
+        response = requests.get(artwork_url)
+        if response.status_code == 200:  # Check if the request was successful
+            with open(artwork_path, "wb") as file:
+                file.write(response.content)
+        else:
+            self.logger.error(f"Failed to download image. Status code: {response.status_code}")
+        return artwork_path  
+
+    def _remove_artwork(self, iTunes_track_ID):
+        ''' Remove artwork '''
+        artwork_path = self.added_db[iTunes_track_ID]['artwork_path']
+        if artwork_path and os.path.exists(artwork_path):
+            os.remove(self.added_db[iTunes_track_ID]['artwork_path'])
+        else:
+            self.logger.error(f"Failed to remove artwork : {artwork_path}")
