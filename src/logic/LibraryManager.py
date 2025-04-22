@@ -10,12 +10,8 @@ import subprocess
 import time
 
 
-
 class LibraryManager():
     def __init__(self):
-        """
-        Constructeur du manager de bibliothèque
-        """
         load_dotenv('.env')
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
         self.downloaded_music_path = os.getenv('DOWNLOADED_MUSIC_FOLDER_PATH')  # Chemin vers le dossier de téléchargement
@@ -24,8 +20,6 @@ class LibraryManager():
         
         self.logger = get_logger(self.__class__.__name__)
         self.logger.info('LibraryManager initialized')
-
-
 
     def get_batch_id(self):
         ''' Read batch_id.txt, update the value and save it '''
@@ -41,8 +35,6 @@ class LibraryManager():
 
         return batch_id
 
-
-
     def get_last_added_track(self):
         '''
         Retourne la dernière musique ajoutée à la bibliothèque
@@ -53,8 +45,6 @@ class LibraryManager():
         tracks = self.music_app.tracks()
         track = sorted(tracks, key=lambda track: track.dateAdded(), reverse=True)[0]
         return track
-
-
 
     def add_tracks(self):
         '''
@@ -102,8 +92,6 @@ class LibraryManager():
 
                 self.logger.info(f"Track : {track_data['title']} - {track_data['artist']} added")
             
-
-
     def clean_track_elements(self, title, artist, album):
         '''
         Nettoie le titre, l'artiste et l'album
@@ -148,7 +136,7 @@ class LibraryManager():
                 if artist in remix_artist:
                     artists_list.remove(artist)
 
-        artist = ' x '.join(artists_list)  # Reconstruction de la chaine de caractère 'artist'
+        artist = ', '.join(artists_list)  # Reconstruction de la chaine de caractère 'artist'
         
         # Ajoute l'artiste en feat s'il existe
         if feat_artist != '':
@@ -166,8 +154,6 @@ class LibraryManager():
 
         return title, artist, album
 
-
-
     def dl_artwork(self, title, artist, artwork_url):
         ''' Télécharge l'artwork '''
         artwork_path = f'ressources/artwork/{title}-{artist}.jpg'
@@ -183,22 +169,14 @@ class LibraryManager():
 
         return artwork_path     
 
-
-
     def get_abs_path(file_path):
         ''' Retourne le chemin absolu du fichier '''
         os.path.abspath(file_path)
 
-
-
     def remove_artwork(self, iTunes_track_ID):
-        '''
-        Supprime l'artwork
-        '''
+        ''' Supprime l'artwork '''
         if self.added_db[iTunes_track_ID]['artwork_path']:
             os.remove(self.added_db[iTunes_track_ID]['artwork_path'])
-
-
 
     def rename_tracks(self): 
         '''
@@ -220,5 +198,3 @@ class LibraryManager():
             renamer.rename_track()  # Renommage de la track
 
             self.remove_artwork(iTunes_track_ID)# Suppression de l'artwork 
-
-
