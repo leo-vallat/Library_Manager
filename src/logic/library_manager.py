@@ -1,8 +1,8 @@
 from ScriptingBridge import SBApplication
 from src.config.config import AppConfig
 from src.config.logger_config import get_logger, log_session_start
-from src.logic.TrackRenamer import TrackRenamer
-from src.logic.SpotifyDataGetter import SpotifyDataGetter
+from src.logic.track_renamer import TrackRenamer
+from src.logic.spotify_data_getter import SpotifyDataGetter
 from src.utils import library_manager_utils
 import os
 import requests

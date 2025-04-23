@@ -12,7 +12,6 @@ class PlaylistManager():
             name : le nom de la playlist
             size : la taille de la playlist en nombre de track
         """
-        self.name = name
         self.size = size
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")
         self.playlist = self.initialize_playlist(name)
@@ -21,37 +20,37 @@ class PlaylistManager():
         '''
         Test l'existence de la playlist, si False la crée
         '''
-        if self.name == None:
+        if name == None:
             return None
-        elif self.playlist_is_existing():
-            return self.get_app_playlist()
-        return self.create_playlist()
+        elif self.playlist_is_existing(name):
+            return self.get_app_playlist(name)
+        return self.create_playlist(name)
 
-    def playlist_is_existing(self):
+    def playlist_is_existing(self, name):
         """
-        Recherche la playlist ayant pour nom self.name dans les playlist existante de Musique
+        Recherche la playlist ayant pour nom name dans les playlist existante de Musique
 
         Return:
             True : Si la playlist existe
             False : Si la playlist n'existe
         """
         for playlist in self.music_app.userPlaylists():
-            if self.name == playlist.name():
+            if name == playlist.name():
                 return True
         return False
 
-    def get_app_playlist(self):
+    def get_app_playlist(self, name):
         for playlist in self.music_app.userPlaylists():
-            if self.name == playlist.name():
+            if name == playlist.name():
                 return playlist
 
-    def create_playlist(self):
+    def create_playlist(self, name):
         """
         Méthode de création d'une playlist
         """
-        new_playlist = self.music_app.classForScriptingClass_("playlist").alloc().initWithProperties_({"name": self.name})
+        new_playlist = self.music_app.classForScriptingClass_("playlist").alloc().initWithProperties_({"name": name})
         self.music_app.sources()[0].playlists().insertObject_atIndex_(new_playlist, 0)
-        print(f"La playlist '{self.name}' a été créée.")
+        print(f"La playlist '{name}' a été créée.")
     
     def populate_playlist(self):
         """ Ajoute les musiques à la playlist suivant les règles établies """
@@ -64,16 +63,8 @@ class PlaylistManager():
             #print(track.name())
             # Conditions de sélection des tracks
             # Musique de moins d'un an & ayant un des genres valides
-            if track.genre() in hard_music_genres and any(p.name() in valid_playlists for p in track.playlists()):
+            if track.genre() in hard_music_genres and any(pl.name() in valid_playlists for pl in track.playlists()):
                 self.add_track(track)
-
-    def add_track(self, track):
-        ''' Ajoute une track à une playlist '''
-        try:
-            print(f'{track.name()} added')
-            self.music_app.add_to_(Foundation.NSArray.arrayWithObject_(Foundation.NSURL.fileURLWithPath_(track.location().path())), self.playlist)
-        except Exception as e:
-            print(f"Erreur lors de l'ajout de la track {track} à la playlist {self.playlist} : \n {e}")
 
     def update_genre_playlist(self, set, target_playlist_list=[]):
         '''
@@ -115,10 +106,16 @@ class PlaylistManager():
                 print(track.name(), ' : ', genre)
                 print("not to add : track's genre not to be classfied")
                 continue
-            
-            self.set_name(genre)
-            self.set_playlist()  
+            self.playlist = self.initialize_playlist(genre)  
             self.add_track(track)
+
+    def add_track(self, track):
+        ''' Ajoute une track à une playlist '''
+        try:
+            print(f'{track.name()} added')
+            self.music_app.add_to_(Foundation.NSArray.arrayWithObject_(Foundation.NSURL.fileURLWithPath_(track.location().path())), self.playlist)
+        except Exception as e:
+            print(f"Erreur lors de l'ajout de la track {track} à la playlist {self.playlist} : \n {e}")
 
     def get_last_added_track_list(self):
         ''' Return the list of the track added the last time '''
@@ -133,14 +130,14 @@ class PlaylistManager():
         
         return last_added_track_list
 
-    def remove_all_tracks_from_playlist(self, playlist):
+    def remove_all_tracks_from_playlist(self, playlist_name):
         '''
         Remove all the track from a specific playlist
 
         Args:
             playlist (str): the name of the playlist
         '''
-        tracks = self.get_tracks_from_playlist(playlist)
+        tracks = self.get_tracks_from_playlist(playlist_name)
         self.set_name(playlist)
         self.set_playlist()
         for track in reversed(tracks):

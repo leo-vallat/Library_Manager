@@ -1,5 +1,5 @@
-from src.logic.LibraryManager import LibraryManager
-from src.logic.PlaylistManager import PlaylistManager
+from src.logic.library_manager import LibraryManager
+from src.logic.playlist_manager import PlaylistManager
 import time
 
 if __name__ == '__main__':
