@@ -1,8 +1,9 @@
 from ScriptingBridge import SBApplication
 from src.config.config import AppConfig
 from src.config.logger_config import get_logger, log_session_start
-from src.logic.track_renamer import TrackRenamer
+from src.logic.playlist_manager import PlaylistManager
 from src.logic.spotify_data_getter import SpotifyDataGetter
+from src.logic.track_renamer import TrackRenamer
 from src.utils import library_manager_utils
 import os
 import requests
@@ -13,10 +14,10 @@ import time
 class LibraryManager():
     def __init__(self):
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
-        self.downloaded_music_path = AppConfig.DOWNLOADED_MUSIC_FOLDER_PATH  # Chemin vers le dossier de téléchargement
+        self.logger = get_logger(self.__class__.__name__)
+        self.playlists = PlaylistManager(self.music_app, self.logger)
         self.batch_id = None
         self.added_db = {}
-        self.logger = get_logger(self.__class__.__name__)
         log_session_start(self.logger)
         AppConfig.validate()
         self.logger.info('LibraryManager initialized')
@@ -27,9 +28,9 @@ class LibraryManager():
         '''
         spotify = SpotifyDataGetter()
         self.batch_id = library_manager_utils.get_batch_id()
-        for filename in os.listdir(self.downloaded_music_path):
+        for filename in os.listdir(AppConfig.DOWNLOADED_MUSIC_FOLDER_PATH):
             if filename.endswith(AppConfig.AVAILABLE_FILE_EXTENSION):
-                music_path = os.path.join(self.downloaded_music_path, filename)
+                music_path = os.path.join(AppConfig.DOWNLOADED_MUSIC_FOLDER_PATH, filename)
 
                 subprocess.run(['open', '-a', 'Music', music_path])  # Ajout de la track à la bibliothèque
 
@@ -95,8 +96,7 @@ class LibraryManager():
             - track : La dernière musique ajoutée
         '''
         tracks = self.music_app.tracks()
-        track = sorted(tracks, key=lambda track: track.dateAdded(), reverse=True)[0]
-        return track
+        return sorted(tracks, key=lambda track: track.dateAdded(), reverse=True)[0]
 
     def _dl_artwork(self, title, artist, artwork_url):
         ''' Télécharge l'artwork '''
@@ -116,4 +116,5 @@ class LibraryManager():
         if artwork_path and os.path.exists(artwork_path):
             os.remove(self.added_db[iTunes_track_ID]['artwork_path'])
         else:
-            self.logger.error(f"Failed to remove artwork : {artwork_path}")
+            pass
+            # self.logger.error(f"Failed to remove artwork : {artwork_path}")

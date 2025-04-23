@@ -1,73 +1,85 @@
+from src.config.config import AppConfig, CleaningRules
 import regex as re
 
 def get_batch_id():
     ''' Read batch_id.txt, update the value and save it '''
-    batch_id_path = 'ressources/batch_id.txt'
-    with open(batch_id_path, "r") as f:
+    with open(AppConfig.BATCH_ID_FILE_PATH, "r") as f:
         batch_id = int(f.read().strip())
     batch_id += 1
-    with open(batch_id_path, "w") as f:
+    with open(AppConfig.BATCH_ID_FILE_PATH, "w") as f:
         f.write(str(batch_id))
     return batch_id
 
 def clean_track_elements(title, artist, album):
     '''
-    Nettoie le titre, l'artiste et l'album
+    Clean title, artist and album strings
 
     Args: 
-        - le titre
-        - l'artiste
-        - l'album
-
-    Return:
-        - le titre nettoyé
-        - l'artiste nettoyé
-        - l'album nettoyé
+        title (str): track's title
+        artist (str): track's artist
+        album (str): track's album
     '''
-    #########
-    # Titre #
-    #########
-    title = re.sub(r'- ([\p{L}0-9\s\'&]+(?: Remix| Mix))', r'(\1)', title)  # Met en forme la partie Remix / Mix
-    title = re.sub(r'- (Extended Mix)', r'(\1)', title)  # Met en forme le Extended Mix
-    title = re.sub(r'- (Radio Edit)', r'(\1)', title)  # Met en forme le Extended Mix
-    title = re.sub(r'- (Official [^\)]+ Anthem)', r'(\1)', title)  # Met en forme le Official ... Anthem
+    title, feat_artist = _clean_title(title)
+    artist = _clean_artist(artist, title, feat_artist)
+    album = _clean_album(album, title)
+    return title, artist, album
 
-    clean_feat = lambda s: (re.search(r'\(feat\. ([^\)]+)\)', s).group(1) if re.search(r'\(feat\. ([^\)]+)\)', s) else '', re.sub(r' \(feat\. ([^\)]+)\)', '', s).strip())  # Récupère le nom de l'artiste en feat puis supprime la partie feat
-    feat_artist, title = clean_feat(title)
-    title = (lambda title: title if title.istitle() else title.title())(title)  # Vérifie que chaque mot possède une majuscule
+def _clean_title(title):
+    title = _remove_unwanted_patterns(title, 'title')
+    # Shapes suffixes
+    title = re.sub(r'- ([\p{L}0-9\s\'&\-]+(?: Remix| Mix| Edit| Anthem| OST| Official Soundtrack))', r'(\1)', title)  
 
+    # Get and remove the 'feat.'
+    feat_artist_match = re.search(r'\(feat\. ([^\)]+)\)', title)
+    feat_artist = feat_artist_match.group(1) if feat_artist_match else ''
+    title = re.sub(r' \(feat\. ([^\)]+)\)', '', title).strip()
 
-    ##########
-    # Artist #
-    ##########
-    artists_list = [artist.strip() for artist in artist.split(',')]
+    return title, feat_artist
+
+def _clean_artist(artist, title, feat_artist):
+    artist = _remove_unwanted_patterns(artist, 'artist')
+
+    artists_list = [a.strip() for a in artist.split(',') if a]
     
-    # Suppression de l'artiste de feat s'il existe
-    if feat_artist != '':
-        for artist in artists_list:
-            if artist in feat_artist:
-                artists_list.remove(artist)
+    # Remove feat artists
+    if feat_artist:
+        artists_list = [a for a in artists_list if a not in feat_artist]
+    
     # Suppresion du/des artiste(s) de remix
-    remix_artist = re.search(r'((?:\()[\p{L}0-9\s\'&]+(?: Remix))', title).group(1) if re.search(r'((?:\()[\p{L}0-9\s\'&]+(?: Remix))', title) else ''
-    if remix_artist != '':
-        for artist in artists_list:
-            if artist in remix_artist:
-                artists_list.remove(artist)
+    remix_artist_match = re.search(r'((?:\()[\p{L}0-9\s\'&\-]+(?: Remix))', title)
+    remix_artist = remix_artist_match.group(1) if remix_artist_match else ''
 
-    artist = ', '.join(artists_list)  # Reconstruction de la chaine de caractère 'artist'
+    if remix_artist:
+        artists_list = [a for a in artists_list if a not in remix_artist]
+    cleaned_artist = ', '.join(artists_list)
     
     # Ajoute l'artiste en feat s'il existe
-    if feat_artist != '':
-        artist += f' ft. {feat_artist}'
+    if feat_artist:
+        cleaned_artist += f' ft. {feat_artist}'
 
+    return cleaned_artist
 
-    #########
-    # Album #
-    #########
+def _clean_album(album, title):
+    album = _remove_unwanted_patterns(album, 'album')
     album = album.strip()
-
-    # Supprime l'album si il est identique au titre
+    # Deletes album if identical to title
     if album.lower() == title.lower():
         album = ''
+    return album
 
-    return title, artist, album
+def _remove_unwanted_patterns(text, field):
+    '''
+    Deletes patterns defined for a specific field + global rules.
+    
+    Args:
+        text (str): text to clean
+        field (str): 'title', 'artist' or 'album'
+    
+    Return:
+        str: cleaned text
+    '''
+    field_rules = getattr(CleaningRules, field.upper(), [])
+    patterns = field_rules + CleaningRules.GLOBAL
+    for pattern in patterns:
+        text = text.replace(pattern, '')
+    return text.strip()

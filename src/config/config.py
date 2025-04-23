@@ -9,7 +9,7 @@ class AppConfig:
     ENV = os.getenv('ENV', 'dev').lower()
     LOG_LEVEL = logging.DEBUG if ENV == 'dev' else logging.INFO
     SHOW_CONSOLE_LOGS = ENV == 'dev'
-    DOWNLOADED_MUSIC_FOLDER_PATH = os.getenv('DOWNLOADED_MUSIC_FOLDER_PATH')
+    DOWNLOADED_MUSIC_FOLDER_PATH = os.getenv('DEV_DOWNLOADED_MUSIC_FOLDER_PATH') if ENV == 'dev' else os.getenv('DOWNLOADED_MUSIC_FOLDER_PATH')
     AVAILABLE_FILE_EXTENSION = tuple(os.getenv('AVAILABLE_FILE_EXTENSION'))
 
     # === STATIC PATHS === #
@@ -32,7 +32,7 @@ class AppConfig:
         missing_vars = [name for name, val in env_vars.items() if not val]
         if missing_vars:
             raise EnvironmentError(f"Missing required env variables in .env : {', '.join(missing_vars)}")
-        # Check statis paths
+        # Check static paths
         static_paths = {
             'DOWNLOADED_MUSIC_FOLDER_PATH': AppConfig.DOWNLOADED_MUSIC_FOLDER_PATH,
             'ARTWORK_FOLDER_PATH': AppConfig.ARTWORK_FOLDER_PATH,
@@ -45,3 +45,9 @@ class AppConfig:
         # Check file extension
         if len(AppConfig.AVAILABLE_FILE_EXTENSION) == 0:
             raise EnvironmentError('AVAILABLE_FILE_EXTENSION is empty in .env')
+
+class CleaningRules:
+    TITLE = []
+    ARTIST = ["Dirty Workz"]
+    ALBUM = []
+    GLOBAL = []
