@@ -1,5 +1,12 @@
 from src.config.config import AppConfig, CleaningRules
+from src.logic.spotify_data_getter import SpotifyDataGetter
 import regex as re
+from src.config.logger_config import get_logger
+import os
+import requests
+import subprocess
+
+logger = get_logger(__name__)
 
 def get_batch_id():
     ''' Read batch_id.txt, update the value and save it '''
@@ -10,7 +17,42 @@ def get_batch_id():
         f.write(str(batch_id))
     return batch_id
 
-def clean_track_elements(title, artist, album):
+def add_track(track_path):
+    ''' Add a track to the library '''
+    return subprocess.run(['open', '-a', 'Music', track_path], capture_output=True, text=True)
+
+def format_track_data(filename):
+    '''  '''
+    spotify = SpotifyDataGetter()
+
+    # Split the parts of the track
+    if filename.endswith('.aiff'):
+        track_parts = filename[:-5].split('%')
+    else:
+        track_parts = filename[:-4].split('%')  
+
+    # Add parts if necessary
+    while len(track_parts) < 4 :
+        track_parts.append('')
+    
+    track_data = {'release_year' : track_parts[0], 'title' : track_parts[1], 'artist' : track_parts[2], 'album' : track_parts[3]}
+
+    # Add spotify and artwork url
+    track_data.update(spotify.get_track_data(track_parts[1], track_parts[2]))
+
+    # Clean track_data
+    track_data['title'], track_data['artist'], track_data['album'] = _clean_track_elements(track_data['title'], track_data['artist'], track_data['album'])
+    
+    # Artwork
+    if filename.endswith(('.aiff', '.m4a')):
+        track_data['artwork_path'] = None
+    else:
+        track_data['artwork_path'] = os.path.abspath(_dl_artwork(track_data['title'], track_data['artist'], track_data['artwork_url']))
+    del track_data['artwork_url']
+
+    return track_data
+
+def _clean_track_elements(title, artist, album):
     '''
     Clean title, artist and album strings
 
@@ -83,3 +125,16 @@ def _remove_unwanted_patterns(text, field):
     for pattern in patterns:
         text = text.replace(pattern, '')
     return text.strip()
+
+def _dl_artwork(title, artist, artwork_url):
+    ''' Download the artwork '''
+    artwork_path = f'ressources/artwork/{title}-{artist}.jpg'
+    logger.debug(f"Download artwork from: {artwork_url}")
+    response = requests.get(artwork_url)
+    if response.status_code == 200:
+        with open(artwork_path, "wb") as file:
+            file.write(response.content)
+    else:
+        logger.warning(f"❌ Failed to download artwork. Status code: {response.status_code}")
+        artwork_path = None
+    return artwork_path 
