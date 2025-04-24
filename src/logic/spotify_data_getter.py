@@ -14,7 +14,7 @@ class SpotifyDataGetter:
         self.spotify = spotipy.Spotify(client_credentials_manager=self.client_credentials_manager)
         
         self.logger = get_logger(self.__class__.__name__)
-        self.logger.info('SpotifyDataGetter initialized')
+        self.logger.debug('SpotifyDataGetter initialized')
 
 
     def get_track_data(self, track_name, artist_name):

@@ -7,11 +7,12 @@ import os
 LOGS_FOLDER_PATH = AppConfig.LOGS_FOLDER_PATH
 
 log_filename = os.path.join(LOGS_FOLDER_PATH, f"app_{AppConfig.ENV}.log")
+log_level = logging.INFO if AppConfig.ENV == 'prod' else logging.DEBUG
 
 def get_logger(name):
     ''' Return the logger with the name of the calling module '''
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(log_level)
     if not logger.hasHandlers():
         file_formatter = logging.Formatter('%(levelname)s:%(name)s : %(message)s')
         file_handler = RotatingFileHandler(log_filename, maxBytes=1_000_000, backupCount=5)

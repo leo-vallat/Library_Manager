@@ -12,7 +12,7 @@ class LibraryManager():
     def __init__(self):
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
         self.logger = get_logger(self.__class__.__name__)
-        self.playlists = PlaylistManager(self.music_app, self.logger)
+        self.playlists = PlaylistManager(self.music_app)
         self.batch_id = None
         self.added_db = {}
         log_session_start(self.logger)

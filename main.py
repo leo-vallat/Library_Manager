@@ -19,9 +19,7 @@ if __name__ == '__main__':
 
     ############################################################################################### 
     ## Mettre à jour les playlists de style                                                      ##
-    ## Attention si mode 'Full' : pensez à vider les playlists avant de lancer le code           ##
     ###############################################################################################
 
-    # plManager = PlaylistManager()
-
-    # plManager.update_genre_playlist('Full', ["Euphoric Hardstyle", 'Hardstyle', 'Rawphoric', 'Frenchcore', 'Rawstyle'])
+    # lbManager.playlists.update_genre_playlist('Full', ["Euphoric Hardstyle", 'Hardstyle', 'pap'])
+    # lbManager.playlists.create_playlist('test')
