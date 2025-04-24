@@ -22,16 +22,19 @@ class SpotifyDataGetter:
         result = self.spotify.search(q=f'track:{track_name.strip()} artist:{artist_name.strip()}', type='track', limit=1)
 
         if result['tracks']['items']:
+            self.logger.debug(f"Track data of '{track_name} - {artist_name}' found")
             track_id = result['tracks']['items'][0]['id']
             artwork_url = result['tracks']['items'][0]['album']['images'][0]['url']
-
-            return {
+        else:
+            self.logger.warning(f"❌ Track data of '{track_name} - {artist_name}' not found")
+            track_id = None
+            artwork_url = None
+        
+        return {
             'spotify_id': track_id,
             'artwork_url': artwork_url
             }
 
-        else:
-            return self.logger.error("Track data not found")
 
 
 ###################################################################################################

@@ -1,15 +1,17 @@
 # from ScriptingBridge import SBApplication
 from src.config.config import AppConfig
+from src.config.logger_config import get_logger
 from src.logic.playlist_handler import PlaylistHandler
 import datetime
 import time
 import Foundation
 
 class PlaylistManager(): 
-    def __init__(self, music_app, logger):
+    def __init__(self, music_app):
         self.music_app = music_app
         self.user_playlists = {p.name():p for p in self.music_app.userPlaylists()}
-        self.logger = logger
+        self.logger = get_logger(self.__class__.__name__)
+        self.logger.info('PlaylistManager initialized')
 
     def get_playlist(self, name):
         playlist = self.user_playlists.get(name)
@@ -27,21 +29,23 @@ class PlaylistManager():
         self.user_playlists = {p.name():p for p in self.music_app.userPlaylists()}
         self.logger.info(f"Created playlist : '{name}'")
     
-    def update_genre_playlist(self, mode='Full', target_playlist_names=None):
+    def update_genre_playlist(self, mode='NTO', target_playlist_names=None):
         '''
         Update genre playlist. 
 
         Args:
-            - mode (str) : 'Full' (All library's tracks) or 'NTO' (New Tracks Only)
+            - mode (str) : 'NTO' (New Tracks Only) or 'Full' (All library's tracks)
             - target_playlist_names (list[str]) : name of the playlists to update. If None, all user's playlists.
         '''
+        self.logger.info(f"Updating genre playlists in {mode} mode")
         # === Get tracks to file ==== #
-        if mode == 'Full':
-            track_set = self.music_app.tracks()
-        elif mode == 'NTO':
+        if mode == 'NTO':
             track_set = self._get_last_added_track_batch()
+        elif mode == 'Full':
+            track_set = self.music_app.tracks()
         else:
-            self.logger.error(f"Unknown mode : {mode}")
+            self.logger.error(f"❌ Unknown mode : {mode}")
+            return
         
         # === Get target playlists === #
         if not target_playlist_names:
@@ -54,7 +58,7 @@ class PlaylistManager():
                 handler = self.get_playlist(name)
                 if handler:
                     handler.remove_all_tracks()
-                    self.logger.info(f"🗑 Track removing in '{name}'")
+                    self.logger.debug(f"🗑 Tracks removed in '{name}'")
 
         # === Track ordering === #
         for track in track_set:
@@ -63,11 +67,11 @@ class PlaylistManager():
             track_playlists = [pl.name() for pl in track.playlists()] 
             # Track without genre -> skip
             if not genre:
-                self.logger.debug(f"⏭ '{track_name}' ignored : no genre")
+                self.logger.debug(f"⏭ '{track_name}' ignored - no genre")
                 continue  
             # Non-target gender -> skip
             if genre not in target_playlist_names:
-                self.logger.debug(f"⏭ '{track_name}' ignored :  '{genre}' is not a target gender")
+                self.logger.debug(f"⏭ '{track_name}' ignored - '{genre}' is not a target gender")
                 continue
             # Track already in genre playlist -> skip
             if genre in track_playlists:
@@ -76,13 +80,13 @@ class PlaylistManager():
             # Track add to the playlist
             handler = self.get_playlist(genre)
             if not handler:
-                self.logger.warning(self.logger.warning(f"❌ Playlist '{genre}' not founded — incorrect or non-existent spelling. Track '{track_name}' ignored."))
+                self.logger.warning(f"❌ Playlist '{genre}' not founded — incorrect or non-existent spelling - Track '{track_name}' ignored.")
                 continue
             try:
                 handler.add_track(track)
-                self.logger.info(f"Track '{track_name}' added to '{genre}'")
+                self.logger.info(f"✅ Track '{track_name}' added to '{genre}'")
             except Exception as e:
-                self.logger.error(f"Error add track '{track_name}' → '{genre}': {e}")
+                self.logger.error(f"❌ Error while adding track '{track_name}' → '{genre}': {e}")
 
     def _get_last_added_track_batch(self):
         ''' Returns the list of the tracks added in the last batch '''

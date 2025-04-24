@@ -10,11 +10,8 @@ class TrackRenamer():
         self.release_year = None
         self.IDs = None
         self.artwork_path = None
-        
         self.logger = get_logger(self.__class__.__name__)
         self.logger.info('Track Renamer initialized')
-
-
 
     def set_values(self, iTunes_ID, title, artist, album, release_year, IDs, artwork_path):
         '''
@@ -28,8 +25,8 @@ class TrackRenamer():
         self.IDs = IDs
         self.artwork_path = artwork_path
 
-
     def rename_track(self):
+        self.logger.debug(f"Renaming {self.title} - {self.artist}")
         # Commande AppleScript
         command = [
         'osascript', 
@@ -59,7 +56,4 @@ class TrackRenamer():
 
         # Vérification des erreurs
         if result.returncode != 0:
-            self.logger.error(f"Error while running Applescript on the track {self.title} - {self.artist} : {result.stderr}")
-        else:
-            self.logger.info(f"Track : {self.title} - {self.artist} renamed")
-
+            self.logger.warning(f"❌ Applescript error while renaming the track {self.title} - {self.artist} → {result.stderr.strip()}")
