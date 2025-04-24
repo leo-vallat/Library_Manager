@@ -5,6 +5,9 @@ import os
 load_dotenv()
 
 class AppConfig:
+    """
+    A configuration class for managing application settings and environment variables.
+    """
     # === ENV VARS === #
     ENV = os.getenv('ENV', 'dev').lower()
     LOG_LEVEL = logging.DEBUG if ENV == 'dev' else logging.INFO
@@ -22,6 +25,14 @@ class AppConfig:
 
     @staticmethod
     def validate():
+        """
+        Validates the application configuration.
+
+        - Ensures the environment variable `ENV` is set to either 'dev' or 'prod'.
+        - Checks for the presence of required environment variables.
+        - Verifies the existence of static paths.
+        - Ensures the `AVAILABLE_FILE_EXTENSION` variable is not empty.
+        """
         # Check env vars
         if AppConfig.ENV not in {'dev', 'prod'}:
             raise EnvironmentError(f"ENV must be either 'dev' or 'prod'. Current: '{AppConfig.ENV}'")
@@ -47,6 +58,11 @@ class AppConfig:
             raise EnvironmentError('AVAILABLE_FILE_EXTENSION is empty in .env')
 
 class CleaningRules:
+    """
+    A class defining cleaning rules for track metadata.
+
+    - Contains lists of patterns to clean titles, artists, albums, and global fields.
+    """
     TITLE = []
     ARTIST = ["Dirty Workz"]
     ALBUM = []

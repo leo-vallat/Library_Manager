@@ -6,7 +6,17 @@ import spotipy
 
 
 class SpotifyDataGetter:
+    """
+    A class to interact with the Spotify API and retrieve track data.
+
+    - Uses Spotipy for Spotify API integration.
+    - Loads Spotify credentials from a `.env` file.
+    """
+
     def __init__(self):
+        """
+        Initializes the SpotifyDataGetter instance.
+        """
         load_dotenv('.env')
         self.client_id = os.getenv('SPOTIFY_CLIENT_ID')
         self.client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
@@ -16,6 +26,21 @@ class SpotifyDataGetter:
 
 
     def get_track_data(self, track_name, artist_name):
+        """
+        Retrieves track data from Spotify based on the track name and artist name.
+
+        - Searches for the track using the Spotify API.
+        - Retrieves the Spotify track ID and artwork URL if the track is found.
+
+        Args:
+            track_name (str): The name of the track to search for.
+            artist_name (str): The name of the artist associated with the track.
+
+        Returns:
+            dict: A dictionary containing:
+                - 'spotify_id' (str or None): The Spotify ID of the track, or None if not found.
+                - 'artwork_url' (str or None): The URL of the track's artwork, or None if not found.
+        """
         # Rechercher le morceau par titre et artiste
         result = self.spotify.search(q=f'track:{track_name.strip()} artist:{artist_name.strip()}', type='track', limit=1)
 

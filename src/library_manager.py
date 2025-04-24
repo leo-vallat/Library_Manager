@@ -11,7 +11,18 @@ import time
 
 class LibraryManager():
     def __init__(self):
-        self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
+        """
+        Initializes the LibraryManager instance.
+
+        - Connects to the Apple Music application using ScriptingBridge.
+        - Sets up the logger for the class.
+        - Validates the application configuration.
+        - Initializes the playlist manager.
+
+        Raises:
+            Exception: If the connection to Apple Music or configuration validation fails.
+        """
+        self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")
         self.logger = get_logger(self.__class__.__name__)
         log_session_start(self.logger)
         AppConfig.validate()
@@ -19,9 +30,19 @@ class LibraryManager():
         self.playlists = PlaylistManager(self.music_app)
 
     def add_tracks(self, rename=True):
-        '''
-        Déplace les musiques du dossier de téléchargement vers le dossier d'ajout à Musique. 
-        '''
+        """
+        Adds music files from the download folder to the Apple Music library.
+
+        - Iterates through files in the download folder.
+        - Adds compatible files to the library.
+        - Optionally renames the added tracks.
+
+        Args:
+            rename (bool): Whether to rename tracks after adding them. Defaults to True.
+
+        Raises:
+            Exception: If an error occurs while adding a track.
+        """
         self.logger.info("▶️ Adding tracks to the library")
         self.batch = Batch.new()
 
@@ -47,7 +68,15 @@ class LibraryManager():
             self._rename_batch()
 
     def _rename_batch(self): 
-        ''' Rename tracks in self.added_db '''
+        """
+        Renames tracks in the current batch.
+
+        - Updates metadata for each track in the batch.
+        - Removes associated artwork after renaming.
+
+        Raises:
+            Exception: If an error occurs during renaming.
+        """
         renamer = TrackRenamer()
 
         for iTunes_track_ID, track_data in self.batch:
@@ -64,17 +93,28 @@ class LibraryManager():
             self.logger.info(f"Renamed {title} - {artist}")
 
     def _get_last_added_track(self):
-        '''
-        Retourne la dernière musique ajoutée à la bibliothèque
+        """
+        Retrieves the most recently added track in the Apple Music library.
 
-        Return : 
-            - track : La dernière musique ajoutée
-        '''
+        Returns:
+            track: The most recently added track.
+        """
         tracks = self.music_app.tracks()
         return sorted(tracks, key=lambda track: track.dateAdded(), reverse=True)[0]
 
     def _remove_artwork(self, iTunes_track_ID):
-        ''' Remove artwork '''
+        """
+        Removes the artwork associated with a track.
+
+        - Deletes the artwork file from the filesystem if it exists.
+
+        Args:
+            iTunes_track_ID (str): The ID of the track whose artwork should be removed.
+
+        Logs:
+            - Debug: If the artwork is successfully removed.
+            - Warning: If the artwork file does not exist.
+        """
         artwork_path = self.batch.tracks[iTunes_track_ID]['artwork_path']
         if artwork_path:
             if os.path.exists(artwork_path):

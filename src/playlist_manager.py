@@ -6,21 +6,38 @@ from src.logic.playlist_handler import PlaylistHandler
 
 class PlaylistManager(): 
     def __init__(self, music_app):
+        """
+        Removes the artwork associated with a track.
+
+        - Deletes the artwork file from the filesystem if it exists.
+
+        Args:
+            iTunes_track_ID (str): The ID of the track whose artwork should be removed.
+        """
         self.music_app = music_app
         self.user_playlists = {p.name():p for p in self.music_app.userPlaylists()}
         self.logger = get_logger(self.__class__.__name__)
         self.logger.info('🟢 PlaylistManager initialized')
 
     def get_playlist(self, name):
+        """
+        Retrieves a playlist by its name.
+
+        Args:
+            name (str): The name of the playlist to retrieve.
+
+        Returns:
+            PlaylistHandler: A handler for the playlist if found, otherwise None.
+        """
         playlist = self.user_playlists.get(name)
         return PlaylistHandler(self.music_app, playlist) if playlist else None
 
     def create_playlist(self, name):
         ''' 
-        Creates a playlist.
+        Creates a new playlist.
         
         Args:
-            name (str): name of the playlist to create
+            name (str): The name of the playlist to create.
         '''
         new_playlist = self.music_app.classForScriptingClass_("playlist").alloc().initWithProperties_({"name": name})
         self.music_app.sources()[0].playlists().insertObject_atIndex_(new_playlist, 0)
@@ -29,7 +46,11 @@ class PlaylistManager():
     
     def update_genre_playlist(self, mode='NTO', target_playlist_names=None):
         '''
-        Update genre playlist. 
+        Update genre playlists based on the specific mode. 
+
+        - In 'NTO' mode, only tracks from the last batch are considered.
+        - In 'Full' mode, all tracks in the library are considered.
+        - Tracks are added to playlists matching their genre.
 
         Args:
             - mode (str) : 'NTO' (New Tracks Only) or 'Full' (All library's tracks)
@@ -87,7 +108,12 @@ class PlaylistManager():
                 self.logger.error(f"❌ Error while adding track '{track_name}' → '{genre}': {e}")
 
     def _get_last_added_track_batch(self):
-        ''' Returns the list of the tracks added in the last batch '''
+        """
+        Retrieves the list of tracks added in the last batch.
+
+        Returns:
+            list: A list of tracks added in the last batch.
+        """
         last_added_track_list = []
         batch_id = Batch.get_current_id()
         for track in self.music_app.tracks():

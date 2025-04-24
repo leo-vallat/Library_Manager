@@ -9,7 +9,12 @@ import subprocess
 logger = get_logger(__name__)
 
 def get_batch_id():
-    ''' Read batch_id.txt, update the value and save it '''
+    """
+    Reads the current batch ID from a file, increments it, and saves the updated value.
+
+    Returns:
+        int: The new batch ID.
+    """
     with open(AppConfig.BATCH_ID_FILE_PATH, "r") as f:
         batch_id = int(f.read().strip())
     batch_id += 1
@@ -18,11 +23,27 @@ def get_batch_id():
     return batch_id
 
 def add_track(track_path):
-    ''' Add a track to the library '''
+    """
+    Adds a track to the Apple Music library.
+
+    Args:
+        track_path (str): The file path of the track to add.
+
+    Returns:
+        subprocess.CompletedProcess: The result of the subprocess call.
+    """
     return subprocess.run(['open', '-a', 'Music', track_path], capture_output=True, text=True)
 
 def format_track_data(filename):
-    '''  '''
+    """
+    Formats track metadata based on the filename and retrieves additional data from Spotify.
+
+    Args:
+        filename (str): The name of the track file.
+
+    Returns:
+        dict: A dictionary containing track metadata, including title, artist, album, release year, Spotify ID, and artwork path.
+    """
     spotify = SpotifyDataGetter()
 
     # Split the parts of the track
@@ -53,20 +74,32 @@ def format_track_data(filename):
     return track_data
 
 def _clean_track_elements(title, artist, album):
-    '''
-    Clean title, artist and album strings
+    """
+    Cleans the title, artist, and album strings.
 
-    Args: 
-        title (str): track's title
-        artist (str): track's artist
-        album (str): track's album
-    '''
+    Args:
+        title (str): The track's title.
+        artist (str): The track's artist.
+        album (str): The track's album.
+
+    Returns:
+        tuple: Cleaned title, artist, and album strings.
+    """
     title, feat_artist = _clean_title(title)
     artist = _clean_artist(artist, title, feat_artist)
     album = _clean_album(album, title)
     return title, artist, album
 
 def _clean_title(title):
+    """
+    Cleans the title string and extracts featured artists.
+
+    Args:
+        title (str): The track's title.
+
+    Returns:
+        tuple: The cleaned title and the featured artist(s).
+    """
     title = _remove_unwanted_patterns(title, 'title')
     # Shapes suffixes
     title = re.sub(r'- ([\p{L}0-9\s\'&\-]+(?: Remix| Mix| Edit| Anthem| OST| Official Soundtrack))', r'(\1)', title)  
@@ -79,6 +112,17 @@ def _clean_title(title):
     return title, feat_artist
 
 def _clean_artist(artist, title, feat_artist):
+    """
+    Cleans the artist string and removes unnecessary elements.
+
+    Args:
+        artist (str): The track's artist.
+        title (str): The track's title.
+        feat_artist (str): The featured artist(s).
+
+    Returns:
+        str: The cleaned artist string.
+    """
     artist = _remove_unwanted_patterns(artist, 'artist')
 
     artists_list = [a.strip() for a in artist.split(',') if a]
@@ -102,6 +146,16 @@ def _clean_artist(artist, title, feat_artist):
     return cleaned_artist
 
 def _clean_album(album, title):
+    """
+    Cleans the album string and removes unnecessary elements.
+
+    Args:
+        album (str): The track's album.
+        title (str): The track's title.
+
+    Returns:
+        str: The cleaned album string.
+    """
     album = _remove_unwanted_patterns(album, 'album')
     album = album.strip()
     # Deletes album if identical to title
@@ -110,16 +164,16 @@ def _clean_album(album, title):
     return album
 
 def _remove_unwanted_patterns(text, field):
-    '''
-    Deletes patterns defined for a specific field + global rules.
-    
+    """
+    Removes unwanted patterns from a string based on predefined rules.
+
     Args:
-        text (str): text to clean
-        field (str): 'title', 'artist' or 'album'
-    
-    Return:
-        str: cleaned text
-    '''
+        text (str): The text to clean.
+        field (str): The field type ('title', 'artist', or 'album').
+
+    Returns:
+        str: The cleaned text.
+    """
     field_rules = getattr(CleaningRules, field.upper(), [])
     patterns = field_rules + CleaningRules.GLOBAL
     for pattern in patterns:
@@ -127,7 +181,17 @@ def _remove_unwanted_patterns(text, field):
     return text.strip()
 
 def _dl_artwork(title, artist, artwork_url):
-    ''' Download the artwork '''
+    """
+    Downloads the artwork for a track.
+
+    Args:
+        title (str): The track's title.
+        artist (str): The track's artist.
+        artwork_url (str): The URL of the artwork.
+
+    Returns:
+        str: The file path to the downloaded artwork.
+    """
     artwork_path = f'ressources/artwork/{title}-{artist}.jpg'
     logger.debug(f"Download artwork from: {artwork_url}")
     response = requests.get(artwork_url)
