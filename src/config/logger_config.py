@@ -30,5 +30,5 @@ def log_session_start(logger):
     ''' Log a visual session delimiter in the log '''
     session_time = datetime.now().strftime('%Y:%m:%d %H:%M:%S')
     logger.info('=' * 60)
-    logger.info(f"📀 Nouvelle session - {session_time}")
+    logger.info(f"🟢 New Session - {session_time}")
     logger.info('=' * 60)

@@ -1,8 +1,9 @@
 from ScriptingBridge import SBApplication
 from src.config.config import AppConfig
 from src.config.logger_config import get_logger, log_session_start
-from src.logic.playlist_manager import PlaylistManager
+from src.logic.batch import Batch
 from src.logic.track_renamer import TrackRenamer
+from src.playlist_manager import PlaylistManager
 from src.utils import library_manager_utils
 import os
 import time
@@ -12,23 +13,23 @@ class LibraryManager():
     def __init__(self):
         self.music_app = SBApplication.applicationWithBundleIdentifier_("com.apple.Music")  # Connexion à Musique
         self.logger = get_logger(self.__class__.__name__)
-        self.playlists = PlaylistManager(self.music_app)
-        self.batch_id = None
-        self.added_db = {}
         log_session_start(self.logger)
         AppConfig.validate()
-        self.logger.info('LibraryManager initialized')
+        self.logger.info('🟢 LibraryManager initialized')
+        self.playlists = PlaylistManager(self.music_app)
 
-    def add_tracks(self):
+    def add_tracks(self, rename=True):
         '''
         Déplace les musiques du dossier de téléchargement vers le dossier d'ajout à Musique. 
         '''
-        self.logger.info("Adding tracks to the library")
-        self.batch_id = library_manager_utils.get_batch_id()
+        self.logger.info("▶️ Adding tracks to the library")
+        self.batch = Batch.new()
+
         for filename in os.listdir(AppConfig.DOWNLOADED_MUSIC_FOLDER_PATH):
             if filename.endswith(AppConfig.AVAILABLE_FILE_EXTENSION):
                 self.logger.debug(f"Adding {filename}")
                 track_path = os.path.join(AppConfig.DOWNLOADED_MUSIC_FOLDER_PATH, filename)
+                
                 result = library_manager_utils.add_track(track_path)
                 if result.returncode != 0:
                     self.logger.error(f"❌ Error while adding track '{filename}' → {result.stderr.strip()}")
@@ -36,28 +37,31 @@ class LibraryManager():
                 time.sleep(1)  # Wait for the track to be added
 
                 iTunes_track_ID = self._get_last_added_track().persistentID()
-                self.added_db[iTunes_track_ID] = library_manager_utils.format_track_data(filename)
-                self.logger.info(f"✅ {self.added_db[iTunes_track_ID]['title']} - {self.added_db[iTunes_track_ID]['artist']} added")
+                track_data = library_manager_utils.format_track_data(filename)
+                self.batch.add_track(iTunes_track_ID, track_data)
+                self.logger.info(f"Add {track_data['title']} - {track_data['artist']}")
 
+        if rename and len(self.batch):
+            if len(self.batch) == 1:
+                time.sleep(1)
+            self._rename_batch()
 
-    def rename_tracks(self): 
+    def _rename_batch(self): 
         ''' Rename tracks in self.added_db '''
         renamer = TrackRenamer()
 
-        for iTunes_track_ID in self.added_db:
-            track_data = self.added_db[iTunes_track_ID]
-
-            release_year = track_data['release_year']
+        for iTunes_track_ID, track_data in self.batch:
             title = track_data['title']
             artist = track_data['artist']
             album = track_data['album']
-            IDs = str(iTunes_track_ID) + ' | ' + track_data['spotify_id'] + ' | ' + str(self.batch_id)
+            release_year = track_data['release_year']
+            IDs = str(iTunes_track_ID) + ' | ' + track_data['spotify_id'] + ' | ' + str(self.batch.id)
             artwork_path = track_data['artwork_path']
              
             renamer.set_values(iTunes_track_ID, title, artist, album, release_year, IDs, artwork_path)
             renamer.rename_track()
             self._remove_artwork(iTunes_track_ID)
-            self.logger.info(f"✅ {title} - {artist} renamed")
+            self.logger.info(f"Renamed {title} - {artist}")
 
     def _get_last_added_track(self):
         '''
@@ -71,10 +75,10 @@ class LibraryManager():
 
     def _remove_artwork(self, iTunes_track_ID):
         ''' Remove artwork '''
-        artwork_path = self.added_db[iTunes_track_ID]['artwork_path']
+        artwork_path = self.batch.tracks[iTunes_track_ID]['artwork_path']
         if artwork_path:
             if os.path.exists(artwork_path):
-                os.remove(self.added_db[iTunes_track_ID]['artwork_path'])
+                os.remove(self.batch.tracks[iTunes_track_ID]['artwork_path'])
                 self.logger.debug(f"Artwork removed")
             else:
                 self.logger.warning(f"❌ Artwork path {artwork_path} doesn't exists")

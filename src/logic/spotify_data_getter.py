@@ -12,9 +12,7 @@ class SpotifyDataGetter:
         self.client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
         self.client_credentials_manager = SpotifyClientCredentials(client_id=self.client_id, client_secret=self.client_secret)
         self.spotify = spotipy.Spotify(client_credentials_manager=self.client_credentials_manager)
-        
         self.logger = get_logger(self.__class__.__name__)
-        self.logger.debug('SpotifyDataGetter initialized')
 
 
     def get_track_data(self, track_name, artist_name):
@@ -22,7 +20,7 @@ class SpotifyDataGetter:
         result = self.spotify.search(q=f'track:{track_name.strip()} artist:{artist_name.strip()}', type='track', limit=1)
 
         if result['tracks']['items']:
-            self.logger.debug(f"Track data of '{track_name} - {artist_name}' found")
+            self.logger.debug(f"Track data found : '{track_name} - {artist_name}'")
             track_id = result['tracks']['items'][0]['id']
             artwork_url = result['tracks']['items'][0]['album']['images'][0]['url']
         else:

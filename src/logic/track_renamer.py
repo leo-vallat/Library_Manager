@@ -11,7 +11,7 @@ class TrackRenamer():
         self.IDs = None
         self.artwork_path = None
         self.logger = get_logger(self.__class__.__name__)
-        self.logger.info('Track Renamer initialized')
+        self.logger.info('🟢 Track Renamer initialized')
 
     def set_values(self, iTunes_ID, title, artist, album, release_year, IDs, artwork_path):
         '''

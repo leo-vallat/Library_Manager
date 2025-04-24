@@ -1,17 +1,15 @@
-# from ScriptingBridge import SBApplication
 from src.config.config import AppConfig
 from src.config.logger_config import get_logger
+from src.logic.batch import Batch
 from src.logic.playlist_handler import PlaylistHandler
-import datetime
-import time
-import Foundation
+
 
 class PlaylistManager(): 
     def __init__(self, music_app):
         self.music_app = music_app
         self.user_playlists = {p.name():p for p in self.music_app.userPlaylists()}
         self.logger = get_logger(self.__class__.__name__)
-        self.logger.info('PlaylistManager initialized')
+        self.logger.info('🟢 PlaylistManager initialized')
 
     def get_playlist(self, name):
         playlist = self.user_playlists.get(name)
@@ -27,7 +25,7 @@ class PlaylistManager():
         new_playlist = self.music_app.classForScriptingClass_("playlist").alloc().initWithProperties_({"name": name})
         self.music_app.sources()[0].playlists().insertObject_atIndex_(new_playlist, 0)
         self.user_playlists = {p.name():p for p in self.music_app.userPlaylists()}
-        self.logger.info(f"Created playlist : '{name}'")
+        self.logger.info(f"▶️ Created playlist : '{name}'")
     
     def update_genre_playlist(self, mode='NTO', target_playlist_names=None):
         '''
@@ -37,7 +35,7 @@ class PlaylistManager():
             - mode (str) : 'NTO' (New Tracks Only) or 'Full' (All library's tracks)
             - target_playlist_names (list[str]) : name of the playlists to update. If None, all user's playlists.
         '''
-        self.logger.info(f"Updating genre playlists in {mode} mode")
+        self.logger.info(f"▶️ Updating genre playlists in {mode} mode")
         # === Get tracks to file ==== #
         if mode == 'NTO':
             track_set = self._get_last_added_track_batch()
@@ -84,15 +82,14 @@ class PlaylistManager():
                 continue
             try:
                 handler.add_track(track)
-                self.logger.info(f"✅ Track '{track_name}' added to '{genre}'")
+                self.logger.info(f"Add to genre playlist '{track_name} → {genre}'")
             except Exception as e:
                 self.logger.error(f"❌ Error while adding track '{track_name}' → '{genre}': {e}")
 
     def _get_last_added_track_batch(self):
         ''' Returns the list of the tracks added in the last batch '''
         last_added_track_list = []
-        with open(AppConfig.BATCH_ID_FILE_PATH, "r") as f:
-            batch_id = f.read().strip()
+        batch_id = Batch.get_current_id()
         for track in self.music_app.tracks():
             if track.comment().endswith(batch_id):
                 last_added_track_list.append(track)
