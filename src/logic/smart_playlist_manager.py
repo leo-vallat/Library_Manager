@@ -9,7 +9,7 @@ import random
 
 
 class SmartPlaylistManager:
-    def __init__(self, music_app, playlist_handler, playlist_name, target_size, target_genre=[], include_recent=True, recent_days=30):
+    def __init__(self, music_app=None, playlist_handler=None, playlist_name='Test', target_size=0, target_genre=[], include_recent=True, recent_days=30):
         self.music_app = music_app
         self.playlist_handler = playlist_handler  # Instance to manipulate the playlist
         self.playlist_name = playlist_name
@@ -23,13 +23,13 @@ class SmartPlaylistManager:
         self.recent_tracks = []  # Newest tracks to prioritize
         self.track_pool = []  # All eligible tracks
 
-        self._load_history()
-        self._load_track_pools()
-
         self.logger.info('🟢 SmartPlaylistManager initialized')
 
     def update_playlist(self):
         ''''''
+        self._load_history()
+        self._load_track_pools()
+
         self.playlist_handler.remove_all_tracks()
         self.logger.debug(f"🗑 Tracks removed in '{self.playlist_name}'")
 
@@ -54,6 +54,23 @@ class SmartPlaylistManager:
             self.logger.warning(f"❗️ Not enough tracks available to reach {self.target_size} tracks - Please restore history or add new tracks")
         elif len(selected_tracks) > self.target_size:
             self.logger.info(f"More recent tracks added ({len(selected_tracks)}) than choosed target size ({self.target_size})")
+
+    def restore_history(self, last_day_to_keep: int=None):
+        ''''''
+        self._load_history()
+        if not self.history:
+            self.logger.info('Empty history - Nothing to restore')
+            return
+        if last_day_to_keep:
+            limit_timestamp = int((datetime.now() - timedelta(days=last_day_to_keep)).timestamp())
+            for timestamp in self.history:
+                if timestamp < limit_timestamp:
+                    del self.history[timestamp]
+        else:
+            max_timestamp = max(self.history.keys())
+            self.history = {max_timestamp : self.history[max_timestamp]}
+        self._save_history()
+        self.logger.info(f"'{self.playlist_name}' playlist history restored")
 
     def _load_history(self):
         ''''''
@@ -92,8 +109,10 @@ class SmartPlaylistManager:
                     continue
             self.track_pool.append(track)
 
-            if self.include_recent and not self.recent_tracks:
-                self.logger.info("Not any recent track detected")
+        if self.include_recent and not self.recent_tracks:
+            self.logger.info("Not any recent track detected")
+        elif self.include_recent and self.recent_tracks:
+            self.logger.info(f"{len(self.recent_tracks)} recent tracks detected")
 
     def _save_history(self):
         ''''''

@@ -13,6 +13,10 @@ if __name__ == '__main__':
     ## Mettre à jour les playlists de style                                                      ##
     ###############################################################################################
 
-    # library.playlists.update_genre_playlist('Full', ["Euphoric Hardstyle", 'Hardstyle', 'pap'])
-    # library.playlists.create_playlist('test')
-    library.playlists.manage('TEST 2', 5, ['Euphoric Hardstyle', 'Hardstyle'], include_recent=True)
+    # library.playlists.update_genre_playlist('Full', ["Euphoric Hardstyle", 'Hardstyle', 'Techno', 'Hard Techno', 'Trance', 'Hard Trance', 'Rawphoric', 'Drum and Bass'])
+
+    library.playlists.manage('MUSCU', 100, ['Hardstyle', 'Rawstyle', 'Frenchcore'])
+
+    library.playlists.manage('EUPHORIC', 200, ['Euphoric Hardstyle', 'Rawphoric', 'Happy Hardcore', 'Frenchcore', 'Drum and Bass'])
+
+    # library.playlists.restore_history('Gland')

@@ -24,7 +24,10 @@ class PlaylistHandler:
         Raises:
             Exception: If the track cannot be added to the playlist.
         """
-        self.music_app.add_to_(Foundation.NSArray.arrayWithObject_(Foundation.NSURL.fileURLWithPath_(track.location().path())), self.playlist)
+        try:
+            self.music_app.add_to_(Foundation.NSArray.arrayWithObject_(Foundation.NSURL.fileURLWithPath_(track.location().path())), self.playlist)
+        except Exception :
+            pass
 
     def remove_all_tracks(self):
         """

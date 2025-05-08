@@ -3,7 +3,7 @@ from src.config.logger_config import get_logger
 from src.logic.batch import Batch
 from src.logic.playlist_handler import PlaylistHandler
 from src.logic.smart_playlist_manager import SmartPlaylistManager
-from src.utils.playlist_manager_utils import create_smart_playlist_files
+from src.utils.playlist_manager_utils import create_smart_playlist_files, smart_playlist_files_exists
 
 class PlaylistManager(): 
     def __init__(self, music_app):
@@ -135,22 +135,15 @@ class PlaylistManager():
         smart_playlist_manager = SmartPlaylistManager(self.music_app, playlist_handler, playlist_name, target_size, target_genre, include_recent, recent_days)
         smart_playlist_manager.update_playlist()
 
-        
-
-    # def populate_playlist(self, name):
-    #     """ Ajoute les musiques à la playlist suivant les règles établies """
-    #     playlist = self.get_playlist(name)
-    #     hard_music_genres = ["Hardstyle", "Frenchcore", "Raw"]
-    #     valid_playlists = ["Musik' 2K23", "Musik' 2K24"]
-    #     year = datetime.timedelta(days=365)
-    #     now = datetime.datetime.now()
-
-    #     for track in self.music_app.tracks():
-    #         #print(track.name())
-    #         # Conditions de sélection des tracks
-    #         # Musique de moins d'un an & ayant un des genres valides
-    #         if track.genre() in hard_music_genres and any(p.name() in valid_playlists for p in track.playlists()):
-    #             playlist.add_track(track)
+    def restore_history(self, playlist_name, last_day_to_keep: int=None):
+        ''''''
+        if playlist_name in self.user_playlists:
+            if smart_playlist_files_exists(playlist_name):
+                SmartPlaylistManager(playlist_name=playlist_name).restore_history(last_day_to_keep)
+            else:
+                self.logger.warning(f"❗️ Playlist '{playlist_name}' files doesn't exist")
+        else:
+            self.logger.warning(f"❗️ Playlist '{playlist_name}' doesn't exists in Apple Music")
 
 if __name__ == "__main__":
     manager = PlaylistManager('Euphoric Hardstyle')
