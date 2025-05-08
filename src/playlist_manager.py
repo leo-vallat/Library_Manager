@@ -2,7 +2,8 @@ from src.config.config import AppConfig
 from src.config.logger_config import get_logger
 from src.logic.batch import Batch
 from src.logic.playlist_handler import PlaylistHandler
-
+from src.logic.smart_playlist_manager import SmartPlaylistManager
+from src.utils.playlist_manager_utils import create_smart_playlist_files
 
 class PlaylistManager(): 
     def __init__(self, music_app):
@@ -120,6 +121,21 @@ class PlaylistManager():
             if track.comment().endswith(batch_id):
                 last_added_track_list.append(track)
         return last_added_track_list
+
+    def manage(self, playlist_name, target_size, target_genre, include_recent=True, recent_days=30):
+        ''''''
+        if playlist_name not in self.user_playlists:
+            self.logger.info(f"▶️ Creating and filling {playlist_name} playlist")
+            self.create_playlist(playlist_name)
+            create_smart_playlist_files(playlist_name)
+            self.logger.debug(f"{playlist_name} management files created")
+        else:
+            self.logger.info(f"▶️ Updating {playlist_name} playlist")
+        playlist_handler = self.get_playlist(playlist_name)
+        smart_playlist_manager = SmartPlaylistManager(self.music_app, playlist_handler, playlist_name, target_size, target_genre, include_recent, recent_days)
+        smart_playlist_manager.update_playlist()
+
+        
 
     # def populate_playlist(self, name):
     #     """ Ajoute les musiques à la playlist suivant les règles établies """

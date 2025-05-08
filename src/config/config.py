@@ -19,6 +19,7 @@ class AppConfig:
     ARTWORK_FOLDER_PATH = 'ressources/artwork'
     BATCH_ID_FILE_PATH = 'ressources/batch_id.txt'
     LOGS_FOLDER_PATH = 'logs'
+    SMART_PLAYLISTS_FOLDER = 'test/smart playlists' if ENV == 'dev' else 'ressources/smart playlists'
 
     # === SYSTEM === #
     MUSIC_APP_BUNDLE_ID = 'com.apple.Music'

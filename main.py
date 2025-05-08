@@ -2,16 +2,17 @@ from src.library_manager import LibraryManager
 import time
 
 if __name__ == '__main__':
-    lbManager = LibraryManager() 
+    library = LibraryManager() 
     
     ############################################################################################### 
     ## Ajouter des musiques à la bibliothèque                                                    ##
     ###############################################################################################
-    # lbManager.add_tracks()
+    # library.add_tracks()
 
     ############################################################################################### 
     ## Mettre à jour les playlists de style                                                      ##
     ###############################################################################################
 
-    lbManager.playlists.update_genre_playlist('Full', ["Euphoric Hardstyle", 'Hardstyle', 'pap'])
-    lbManager.playlists.create_playlist('test')
+    # library.playlists.update_genre_playlist('Full', ["Euphoric Hardstyle", 'Hardstyle', 'pap'])
+    # library.playlists.create_playlist('test')
+    library.playlists.manage('TEST 2', 5, ['Euphoric Hardstyle', 'Hardstyle'], include_recent=True)
